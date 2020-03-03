@@ -1,0 +1,43 @@
+// Import the Cryptol specification for dot product
+import "dotprod.cry";
+
+// Include common LLVM utilities
+include "../../common/llvm.saw";
+
+// This function specifies what the `dotprod` function should do when
+// given an input of size `n`.
+let dotprod_spec n = do {
+    let nt = crucible_term {{ `n : [32] }};
+    (xs, xsp) <- ptr_to_fresh "xs" (llvm_array n i32);
+    (ys, ysp) <- ptr_to_fresh "ys" (llvm_array n i32);
+    let xval = crucible_struct [ xsp, nt ];
+    let yval = crucible_struct [ ysp, nt ];
+    xp <- alloc_init (llvm_struct "struct.vec_t") xval;
+    yp <- alloc_init (llvm_struct "struct.vec_t") yval;
+    crucible_execute_func [xp, yp];
+    crucible_return (crucible_term {{ dotprod xs ys }});
+};
+
+// The same spec as above, but for the case where both input pointers
+// point to the same object.
+let dotprod_aliased_spec n = do {
+    let nt = crucible_term {{ `n : [32] }};
+    (xs, xsp) <- ptr_to_fresh "xs" (llvm_array n i32);
+    let xval = crucible_struct [ xsp, nt ];
+    xp <- alloc_init (llvm_struct "struct.vec_t") xval;
+    crucible_execute_func [xp, xp];
+    crucible_return (crucible_term {{ dotprod xs xs }});
+};
+
+// Load the LLVM bitcode file generated from `dotprod.c`
+m <- llvm_load_module "dotprod.bc";
+
+let sz = 4;
+
+// Verify the distinct version
+dotprod_ov <- crucible_llvm_verify m "dotprod" [] true (dotprod_spec sz) z3;
+crucible_llvm_verify m "dotprod_wrap" [dotprod_ov] true (dotprod_spec sz) z3;
+
+// Verify the aliased version
+dotprod_aliased_ov <- crucible_llvm_verify m "dotprod" [] true (dotprod_aliased_spec sz) z3;
+crucible_llvm_verify m "dotprod_wrap" [dotprod_aliased_ov] true (dotprod_aliased_spec sz) z3;

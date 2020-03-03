@@ -1,0 +1,2 @@
+dotprod : {n, a} (fin n, Arith a) => [n]a -> [n]a -> a
+dotprod xs ys = sum (zipWith (*) xs ys)

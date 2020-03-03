@@ -1,0 +1,31 @@
+// LLVM utility definitions
+
+// Returns a newly-allocated pointer of the given type that points to
+// the given value.
+let alloc_init ty v = do {
+    p <- crucible_alloc ty;
+    crucible_points_to p v;
+    return p;
+};
+
+// Returns a fresh value of the given type along with a newly-allocated
+// pointer that points to that value.
+let ptr_to_fresh n ty = do {
+    x <- crucible_fresh_var n ty;
+    p <- alloc_init ty (crucible_term x);
+    return (x, p);
+};
+
+// Standard LLVM type names
+let i8 = llvm_int 8;
+let i16 = llvm_int 16;
+let i32 = llvm_int 32;
+let i64 = llvm_int 64;
+
+// Standard C type names
+let int8_t = llvm_int 8;
+let int16_t = llvm_int 16;
+let int32_t = llvm_int 32;
+let int64_t = llvm_int 64;
+
+let bytes n = llvm_array n i8;

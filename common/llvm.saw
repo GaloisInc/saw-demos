@@ -16,6 +16,15 @@ let ptr_to_fresh n ty = do {
     return (x, p);
 };
 
+// Returns a fresh value of the given type along with a newly-allocated
+// read-only pointer that points to that value.
+let ptr_to_fresh_readonly n ty = do {
+    x <- crucible_fresh_var n ty;
+    p <- crucible_alloc_readonly ty;
+    crucible_points_to p (crucible_term x);
+    return (x, p);
+};
+
 // Standard LLVM type names
 let i8 = llvm_int 8;
 let i16 = llvm_int 16;

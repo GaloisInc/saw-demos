@@ -31,10 +31,16 @@ For C verification, the LLVM toolchain is required. In particular, the
 for any verification involving more than one compilation unit.
 
 For Java verification, JDK 6 through JDK 8 is required. Later versions
-unfortunately do not include `.jar` file containing the standard
+unfortunately do not include a `.jar` file containing the standard
 libraries, and SAW does not have the ability to read the pre-compiled
 versions of the standard libraries that they do include.
 
 Each of the verification demos includes a `Makefile` that will perform
 whatever steps are required to compile the source code under analysis
 and the execute `saw` on the appropriate verification script.
+
+Some of the demos reference Cryptol specifications from the
+`cryptol-specs` repository, which is a submodule to this repository. To
+initialize it, run the following:
+
+        git submodule update --init

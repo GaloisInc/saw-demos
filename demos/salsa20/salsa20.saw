@@ -4,27 +4,30 @@ import "../../cryptol-specs/Primitive/Symmetric/Cipher/Stream/Salsa20.cry";
 
 let prover nm = abc;
 
+let bytes n = (llvm_array n uint8_t);
 let words n = llvm_array n i32;
 
 let oneptr_update_func n ty f = do {
-    (x, p) <- ptr_to_fresh n ty;
-    crucible_execute_func [p];
-    crucible_points_to p (crucible_term {{ f x }});
+    v <- alloc n WRITE ty;
+    execute [v.p];
+    let t = v.t;
+    points_to v.p (from_cryptol {{ f t }});
 };
 
 let quarterround_setup = do {
-    (y0, p0) <- ptr_to_fresh "y0" i32;
-    (y1, p1) <- ptr_to_fresh "y1" i32;
-    (y2, p2) <- ptr_to_fresh "y2" i32;
-    (y3, p3) <- ptr_to_fresh "y3" i32;
+    y0 <- alloc "y0" WRITE i32;
+    y1 <- alloc "y1" WRITE i32;
+    y2 <- alloc "y2" WRITE i32;
+    y3 <- alloc "y3" WRITE i32;
 
-    crucible_execute_func [p0, p1, p2, p3];
+    execute [y0.p, y1.p, y2.p, y3.p];
 
-    let zs = {{ quarterround [y0,y1,y2,y3] }};
-    crucible_points_to p0 (crucible_term {{ zs@0 }});
-    crucible_points_to p1 (crucible_term {{ zs@1 }});
-    crucible_points_to p2 (crucible_term {{ zs@2 }});
-    crucible_points_to p3 (crucible_term {{ zs@3 }});
+    let (y0t, y1t, y2t, y3t) = (y0.t, y1.t, y2.t, y3.t);
+    let zs = {{ quarterround [y0t,y1t,y2t,y3t] }};
+    points_to y0.p (from_cryptol {{ zs@0 }});
+    points_to y1.p (from_cryptol {{ zs@1 }});
+    points_to y2.p (from_cryptol {{ zs@2 }});
+    points_to y3.p (from_cryptol {{ zs@3 }});
 };
 
 let rowround_setup =
@@ -40,27 +43,29 @@ let salsa20_setup =
     oneptr_update_func "seq" (bytes 64) {{ Salsa20 }};
 
 let salsa20_expansion_32 = do {
-    (k, pk) <- ptr_to_fresh_readonly "k" (bytes 32);
-    (n, pn) <- ptr_to_fresh_readonly "n" (bytes 16);
-    pks     <- crucible_alloc            (bytes 64);
+    k <- alloc "k" CONST (bytes 32);
+    n <- alloc "n" CONST (bytes 16);
+    pks <- pointer WRITE (bytes 64);
 
-    crucible_execute_func [pk, pn, pks];
+    execute [k.p, n.p, pks];
 
-    let rks = {{ Salsa20_expansion`{a=2}(k, n)}};
-    crucible_points_to pks (crucible_term rks);
+    let (kt, nt) = (k.t, n.t);
+    let rks = {{ Salsa20_expansion`{a=2}(kt, nt)}};
+    points_to pks (from_cryptol rks);
 };
 
 let s20_encrypt32 n = do {
-    let zerot = crucible_term {{ 0 : [32] }};
-    let nt = crucible_term {{ `n : [32] }};
-    (key, pkey) <- ptr_to_fresh "key"   (bytes 32);
-    (v, pv)     <- ptr_to_fresh "nonce" (bytes 8);
-    (m, pm)     <- ptr_to_fresh "buf"   (bytes n);
+    let zerot = from_cryptol {{ 0 : [32] }};
+    let nt = from_cryptol {{ `n : [32] }};
+    key <- alloc "key" CONST (bytes 32);
+    v <- alloc "nonce" CONST (bytes 8);
+    m <- alloc "buf" WRITE (bytes n);
+    
+    execute [key.p, v.p, zerot, m.p, nt];
 
-    crucible_execute_func [pkey, pv, zerot, pm, nt];
-
-    crucible_points_to pm (crucible_term {{ Salsa20_encrypt (key, v, m) }});
-    crucible_return zerot;
+    let (keyt, vt, mt) = (key.t, v.t, m.t);
+    points_to m.p (from_cryptol {{ Salsa20_encrypt (keyt, vt, mt) }});
+    returns zerot;
 };
 
 m <- llvm_load_module "salsa20.bc";

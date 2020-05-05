@@ -39,6 +39,15 @@ let alloc (name : String) (rw : Term) (type : LLVMType) = do {
   return {p=p, s=v.s, t=v.t};
 };
 
+// Returns a newly-allocated pointer of the given type that points to
+// a given symbolic variable. Also returns the SetupValue and Term for
+// the variable.
+let alloc_init (name : String) (rw : Term) (type : LLVMType) (v : SetupValue) = do {
+  p <- pointer rw type;
+  points_to p v;
+  return {p=p, s=v};
+};
+
 // Standard LLVM type names
 let i8 = llvm_int 8;
 let i16 = llvm_int 16;

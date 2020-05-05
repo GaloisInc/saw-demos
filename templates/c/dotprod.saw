@@ -7,26 +7,28 @@ include "../../common/llvm.saw";
 // This function specifies what the `dotprod` function should do when
 // given an input of size `n`.
 let dotprod_spec n = do {
-    let nt = crucible_term {{ `n : [32] }};
-    (xs, xsp) <- ptr_to_fresh "xs" (llvm_array n i32);
-    (ys, ysp) <- ptr_to_fresh "ys" (llvm_array n i32);
-    let xval = crucible_struct [ xsp, nt ];
-    let yval = crucible_struct [ ysp, nt ];
-    xp <- alloc_init (llvm_struct "struct.vec_t") xval;
-    yp <- alloc_init (llvm_struct "struct.vec_t") yval;
-    crucible_execute_func [xp, yp];
-    crucible_return (crucible_term {{ dotprod xs ys }});
+    let nt = from_cryptol {{ `n : [32] }};
+    xs <- alloc "xs" (llvm_array n uint32_t);
+    ys <- alloc "ys" (llvm_array n uint32_t);
+    let xval = struct [ xs.p, nt ];
+    let yval = struct [ ys.p, nt ];
+    xp <- alloc_init (struct_t "vec_t") xval;
+    yp <- alloc_init (struct_t "vec_t") yval;
+    execute [xp, yp];
+    let (xst, yst) = (xs.t, ys.t);
+    returns (from_cryptol {{ dotprod xst yst }});
 };
 
 // The same spec as above, but for the case where both input pointers
 // point to the same object.
 let dotprod_aliased_spec n = do {
-    let nt = crucible_term {{ `n : [32] }};
-    (xs, xsp) <- ptr_to_fresh "xs" (llvm_array n i32);
-    let xval = crucible_struct [ xsp, nt ];
-    xp <- alloc_init (llvm_struct "struct.vec_t") xval;
-    crucible_execute_func [xp, xp];
-    crucible_return (crucible_term {{ dotprod xs xs }});
+    let nt = from_cryptol {{ `n : [32] }};
+    xs <- alloc "xs" (llvm_array n uint32_t);
+    let xval = struct [ xs.p, nt ];
+    xp <- alloc_init (struct_t "vec_t") xval;
+    execute [xp, xp];
+    let xst = xs.t;
+    returns (from_cryptol {{ dotprod xst xst }});
 };
 
 // Load the LLVM bitcode file generated from `dotprod.c`

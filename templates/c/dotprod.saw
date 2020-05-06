@@ -4,42 +4,56 @@ import "dotprod.cry";
 // Include common LLVM utilities
 include "../../common/llvm.saw";
 
+// This function provides a new vec_t of a given size
+let vec_t (name : String) (rw : Term) (size : Int) = do {
+  elts <- alloc (str_concat name ".elts") rw (llvm_array size uint32_t);
+  let sizet = from_cryptol {{ `size : [32] }};
+
+  let vec_struct = struct [ elts.p, sizet ];
+  pvec_struct <- pointer rw (struct_t "vec_t");
+  points_to pvec_struct vec_struct;
+  return {p=pvec_struct, struct=vec_struct, size={s=size, t=sizet}, elts=elts};
+};
+
 // This function specifies what the `dotprod` function should do when
 // given an input of size `n`.
+
+//uint32_t dotprod(vec_t *x, vec_t *y)
 let dotprod_spec n = do {
-    let nt = from_cryptol {{ `n : [32] }};
-    xs <- alloc "xs" (llvm_array n uint32_t);
-    ys <- alloc "ys" (llvm_array n uint32_t);
-    let xval = struct [ xs.p, nt ];
-    let yval = struct [ ys.p, nt ];
-    xp <- alloc_init (struct_t "vec_t") xval;
-    yp <- alloc_init (struct_t "vec_t") yval;
-    execute [xp, yp];
-    let (xst, yst) = (xs.t, ys.t);
+    x <- vec_t "x" CONST n;
+    y <- vec_t "y" CONST n;
+
+    execute [x.p, y.p];
+
+    let (xst, yst) = ((x.elts).t, (y.elts).t);
     returns (from_cryptol {{ dotprod xst yst }});
 };
 
 // The same spec as above, but for the case where both input pointers
 // point to the same object.
+//uint32_t dotprod(vec_t *x, vec_t *x)
 let dotprod_aliased_spec n = do {
-    let nt = from_cryptol {{ `n : [32] }};
-    xs <- alloc "xs" (llvm_array n uint32_t);
-    let xval = struct [ xs.p, nt ];
-    xp <- alloc_init (struct_t "vec_t") xval;
-    execute [xp, xp];
-    let xst = xs.t;
+    x <- vec_t "x" CONST n;
+
+    execute [x.p, x.p];
+    let xst = (x.elts).t;
     returns (from_cryptol {{ dotprod xst xst }});
 };
 
 // Load the LLVM bitcode file generated from `dotprod.c`
 m <- llvm_load_module "dotprod.bc";
 
-let sz = 4;
+let size = 4;
 
 // Verify the distinct version
-dotprod_ov <- crucible_llvm_verify m "dotprod" [] true (dotprod_spec sz) z3;
-crucible_llvm_verify m "dotprod_wrap" [dotprod_ov] true (dotprod_spec sz) z3;
+dotprod_ov <- llvm_verify m "dotprod" [] (dotprod_spec size);
+
+// Test simply to demonstrate how overrides are applied
+llvm_verify m "dotprod" [dotprod_ov] (dotprod_spec size);
 
 // Verify the aliased version
-dotprod_aliased_ov <- crucible_llvm_verify m "dotprod" [] true (dotprod_aliased_spec sz) z3;
-crucible_llvm_verify m "dotprod_wrap" [dotprod_aliased_ov] true (dotprod_aliased_spec sz) z3;
+dotprod_aliased_ov <- llvm_verify m "dotprod" [] (dotprod_aliased_spec size);
+
+// Test simply to demonstrate how overrides are applied
+llvm_verify m "dotprod" [dotprod_aliased_ov] (dotprod_aliased_spec size);
+

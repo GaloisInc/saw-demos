@@ -12,7 +12,7 @@ let vec_t (name : String) (rw : Term) (size : Int) = do {
   let vec_struct = struct [ elts.p, sizet ];
   pvec_struct <- pointer rw (struct_t "vec_t");
   points_to pvec_struct vec_struct;
-  return {p=pvec_struct, struct=vec_struct, size={s=size, t=sizet}, elts=elts};
+  return {p=pvec_struct, s=vec_struct, size={s=size, t=sizet}, elts=elts};
 };
 
 // This function specifies what the `dotprod` function should do when

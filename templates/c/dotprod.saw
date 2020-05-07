@@ -5,18 +5,21 @@ import "dotprod.cry";
 include "../../common/llvm.saw";
 
 // This function provides a new vec_t of a given size
-let vec_t (name : String) (rw : Term) (n : Int) = do {
+let vec_t (rw : Term) (n : Int) (name : String) = do {
   //Create the structure
-  elts <- alloc (str_concat name ".elts") rw (llvm_array n uint32_t);
-  size <- variable "size" uint32_t (CON {{ `n : [32] }});
-  vec <- struct "vec_t" rw [ elts.p, size.s ];
+  elts <- alloc rw (llvm_array n uint32_t) (str_concat name ".elts") FRESH;
+  size <- variable uint32_t "size" (STALE {{ `n : [32] }});
+  vec <- struct rw "vec_t" [ elts.p, size.s ];
+
+  vecp <- pointer rw (struct_t "vec_t");
+  points_to vecp vec.s;
 
   //Create the Term for the structure (for use in Cryptol expressions)
   let (sizet, eltst) = (size.t, elts.t);
   let vect = {{ {size=sizet, elts=eltst} }};
 
   //Return a pointer, a SetupValue, and a Term for the new vec_t.
-  return {p=vec.p, s=vec.s, t=vect};
+  return {p=vecp, s=vec.s, t=vect};
 };
 
 // This function specifies what the `dotprod` function should do when
@@ -24,8 +27,8 @@ let vec_t (name : String) (rw : Term) (n : Int) = do {
 
 //uint32_t dotprod(vec_t *x, vec_t *y)
 let dotprod_spec n = do {
-    x <- vec_t "x" CONST n;
-    y <- vec_t "y" CONST n;
+    x <- vec_t CONST n "x";
+    y <- vec_t CONST n "y";
 
     execute [x.p, y.p];
 
@@ -37,7 +40,7 @@ let dotprod_spec n = do {
 // point to the same object.
 //uint32_t dotprod(vec_t *x, vec_t *x)
 let dotprod_aliased_spec n = do {
-    x <- vec_t "x" CONST n;
+    x <- vec_t CONST n "x";
 
     execute [x.p, x.p];
 

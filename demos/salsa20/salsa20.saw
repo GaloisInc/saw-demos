@@ -8,17 +8,17 @@ let bytes n = (llvm_array n uint8_t);
 let words n = llvm_array n i32;
 
 let oneptr_update_func n ty f = do {
-    v <- alloc n WRITE ty;
+    v <- alloc WRITE ty n FRESH;
     execute [v.p];
     let t = v.t;
     points_to v.p (from_cryptol {{ f t }});
 };
 
 let quarterround_setup = do {
-    y0 <- alloc "y0" WRITE i32;
-    y1 <- alloc "y1" WRITE i32;
-    y2 <- alloc "y2" WRITE i32;
-    y3 <- alloc "y3" WRITE i32;
+    y0 <- alloc WRITE i32 "y0" FRESH;
+    y1 <- alloc WRITE i32 "y1" FRESH;
+    y2 <- alloc WRITE i32 "y2" FRESH;
+    y3 <- alloc WRITE i32 "y3" FRESH;
 
     execute [y0.p, y1.p, y2.p, y3.p];
 
@@ -43,8 +43,8 @@ let salsa20_setup =
     oneptr_update_func "seq" (bytes 64) {{ Salsa20 }};
 
 let salsa20_expansion_32 = do {
-    k <- alloc "k" CONST (bytes 32);
-    n <- alloc "n" CONST (bytes 16);
+    k <- alloc CONST (bytes 32) "k" FRESH;
+    n <- alloc CONST (bytes 16) "n" FRESH;
     pks <- pointer WRITE (bytes 64);
 
     execute [k.p, n.p, pks];
@@ -57,9 +57,9 @@ let salsa20_expansion_32 = do {
 let s20_encrypt32 n = do {
     let zerot = from_cryptol {{ 0 : [32] }};
     let nt = from_cryptol {{ `n : [32] }};
-    key <- alloc "key" CONST (bytes 32);
-    v <- alloc "nonce" CONST (bytes 8);
-    m <- alloc "buf" WRITE (bytes n);
+    key <- alloc CONST (bytes 32) "key" FRESH;
+    v <- alloc CONST (bytes 8) "nonce" FRESH;
+    m <- alloc WRITE (bytes n) "buf" FRESH;
     
     execute [key.p, v.p, zerot, m.p, nt];
 

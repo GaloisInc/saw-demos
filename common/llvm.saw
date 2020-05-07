@@ -4,10 +4,10 @@
 let points_to = crucible_points_to;
 let precond = crucible_precond;
 let from_cryptol = crucible_term;
+
 let execute = crucible_execute_func;
 let postcond = crucible_postcond;
 let returns = crucible_return;
-let struct = crucible_struct;
 let array = crucible_array;
 let llvm_verify module function_name overrides spec =
   crucible_llvm_verify module function_name overrides true spec z3;
@@ -67,6 +67,13 @@ let char = llvm_int 8;
 
 // Provides the type of a struct. For example, 'struct_t "mystruct_t"';
 let struct_t (name : String) = llvm_struct (str_concat "struct." name);
+
+let struct (s : [SetupValue]) struct_name rw = do {
+  let s_struct = crucible_struct s;
+  p_struct <- pointer rw (struct_t struct_name);
+  points_to p_struct s_struct;
+  return {p=p_struct, s=s_struct};
+};
 
 // Provides a pointer, SetupValue, and Term associated with a string
 // of size `size+1` that is NULL terminated. The Term (Cryptol value)

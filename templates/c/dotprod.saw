@@ -5,16 +5,17 @@ import "dotprod.cry";
 include "../../common/llvm.saw";
 
 // This function provides a new vec_t of a given size
-let vec_t (name : String) (rw : Term) (size : Int) = do {
-  elts <- alloc (str_concat name ".elts") rw (llvm_array size uint32_t);
-  let eltst = elts.t;
-  
-  let sizet = {{ `size : [32] }};
-  let sizes = from_cryptol sizet;
+let vec_t (name : String) (rw : Term) (n : Int) = do {
+  //Create the structure
+  elts <- alloc (str_concat name ".elts") rw (llvm_array n uint32_t);
+  size <- variable "size" uint32_t (CON {{ `n : [32] }});
+  vec <- struct "vec_t" rw [ elts.p, size.s ];
 
+  //Create the Term for the structure (for use in Cryptol expressions)
+  let (sizet, eltst) = (size.t, elts.t);
   let vect = {{ {size=sizet, elts=eltst} }};
 
-  vec <- struct [ elts.p, sizes ] "vec_t" rw;
+  //Return a pointer, a SetupValue, and a Term for the new vec_t.
   return {p=vec.p, s=vec.s, t=vect};
 };
 

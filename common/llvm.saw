@@ -22,11 +22,21 @@ let pointer (rw : Term) (type : LLVMType) = if (eval_bool {{ rw == WRITE }})
                       then crucible_alloc type
                       else crucible_alloc_readonly type;
 
-// Returns both the SetupValue and a Term for a new symbolic
-// variable.
-let variable (name : String) (type : LLVMType) = do {
-  cryptol_var <- crucible_fresh_var name type;
-  return {s=from_cryptol cryptol_var : SetupValue, t=cryptol_var : Term};
+//Symbolic value --- for use with the `variable` function.
+let SYM   = { symbolic={{ True }} : Term, t={{ False }} : Term};
+//Concrete value --- for use with the `variable` function.
+let CON t = { symbolic={{ False }} : Term, t=t : Term};
+
+// Returns a NULL pointer, the SetupValue, and a Term for either a new
+// symbolic variable or a term passed in.
+// Should be called like:
+//   variable "name" (llvm_int 32) SYM;
+// or
+//   variable "name" (llvm_int 32) (CON {{ 10 : [32] }});
+let variable (name : String) (type : LLVMType) (v : { symbolic : Term, t : Term}) = do {
+  cfv <- crucible_fresh_var name type;
+  let t = if (eval_bool v.symbolic) then cfv else v.t;
+  return {p=crucible_null, s=from_cryptol t, t=t};
 };
 
 // Returns a newly-allocated pointer of the given type that points to
@@ -34,18 +44,18 @@ let variable (name : String) (type : LLVMType) = do {
 // the variable.
 let alloc (name : String) (rw : Term) (type : LLVMType) = do {
   p <- pointer rw type;
-  v <- variable name type;
+  v <- variable name type SYM;
   points_to p v.s;
   return {p=p, s=v.s, t=v.t};
 };
 
 // Returns a newly-allocated pointer of the given type that points to
-// a given symbolic variable. Also returns the SetupValue and Term for
+// a given variable : SetupValue. Also returns the SetupValue and Term for
 // the variable.
-let alloc_init (name : String) (rw : Term) (type : LLVMType) (v : SetupValue) = do {
+let alloc_init (name : String) (rw : Term) (type : LLVMType) (v : {p : SetupValue, s : SetupValue, t : Term}) = do {
   p <- pointer rw type;
-  points_to p v;
-  return {p=p, s=v};
+  points_to p v.s;
+  return {p=p, s=v.s, t=v.t};
 };
 
 // Standard LLVM type names
@@ -68,11 +78,11 @@ let char = llvm_int 8;
 // Provides the type of a struct. For example, 'struct_t "mystruct_t"';
 let struct_t (name : String) = llvm_struct (str_concat "struct." name);
 
-let struct (s : [SetupValue]) struct_name rw = do {
+let struct struct_name rw (s : [SetupValue]) = do {
   let s_struct = crucible_struct s;
   p_struct <- pointer rw (struct_t struct_name);
   points_to p_struct s_struct;
-  return {p=p_struct, s=s_struct};
+  return {p=p_struct, s=s_struct, t={{ zero }}};
 };
 
 // Provides a pointer, SetupValue, and Term associated with a string

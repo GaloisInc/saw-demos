@@ -7,10 +7,15 @@ include "../../common/llvm.saw";
 // This function provides a new vec_t of a given size
 let vec_t (name : String) (rw : Term) (size : Int) = do {
   elts <- alloc (str_concat name ".elts") rw (llvm_array size uint32_t);
-  let sizet = from_cryptol {{ `size : [32] }};
+  let eltst = elts.t;
+  
+  let sizet = {{ `size : [32] }};
+  let sizes = from_cryptol sizet;
 
-  vec_struct <- struct [ elts.p, sizet ] "vec_t" rw;
-  return {p=vec_struct.p, s=vec_struct.s, size={s=size, t=sizet}, elts=elts};
+  let vect = {{ {size=sizet, elts=eltst} }};
+
+  vec <- struct [ elts.p, sizes ] "vec_t" rw;
+  return {p=vec.p, s=vec.s, t=vect};
 };
 
 // This function specifies what the `dotprod` function should do when
@@ -23,8 +28,8 @@ let dotprod_spec n = do {
 
     execute [x.p, y.p];
 
-    let (xst, yst) = ((x.elts).t, (y.elts).t);
-    returns (from_cryptol {{ dotprod xst yst }});
+    let (xt, yt) = (x.t, y.t);
+    returns (from_cryptol {{ dotprod xt.elts yt.elts }});
 };
 
 // The same spec as above, but for the case where both input pointers
@@ -34,8 +39,9 @@ let dotprod_aliased_spec n = do {
     x <- vec_t "x" CONST n;
 
     execute [x.p, x.p];
-    let xst = (x.elts).t;
-    returns (from_cryptol {{ dotprod xst xst }});
+
+    let xt = x.t;
+    returns (from_cryptol {{ dotprod xt.elts xt.elts }});
 };
 
 // Load the LLVM bitcode file generated from `dotprod.c`

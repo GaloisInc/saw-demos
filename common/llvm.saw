@@ -26,13 +26,13 @@ let array = crucible_array;
 let llvm_verify module function_name overrides spec =
   crucible_llvm_verify module function_name overrides true spec z3;
 
-// Declare constants used to denote whether an allocation is
-// 'READONLY' (CONST) or not (WRITE).
+// Declare constants used to denote what kind of space a pointer is
+// pointing to.
 let CONST  = {{ 0 : [2] }}; //Points to allocated space that is READ ONLY.
 let WRITE  = {{ 1 : [2] }}; //Points to allocated space that can be modified.
 let UNINIT = {{ 2 : [2] }}; //Pointer does not point to allocated space.
 
-// Returns a newly-allocated pointer of the given type.
+// Returns a pointer of the given type.
 let pointer (rw : Term) (type : LLVMType) =
   if     (eval_bool {{ rw == 0 }}) then crucible_alloc_readonly type
   else if(eval_bool {{ rw == 1 }}) then crucible_alloc type

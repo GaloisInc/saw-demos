@@ -1,5 +1,19 @@
 // LLVM utility definitions
 
+// This function will cause llvm_verify to error and, most
+// importantly, provide a handy backtrace.
+let error = do {
+  crucible_precond {{ True }};
+  crucible_postcond {{ True }};
+  return {{ True }};
+};
+
+// This function is useful in the opposite case of an `if` statement
+// with an `error`.
+let noerror = do {
+  return {{ True }};
+};
+
 // Remove 'crucible' from common commands
 let points_to = crucible_points_to;
 let precond = crucible_precond;
@@ -14,13 +28,15 @@ let llvm_verify module function_name overrides spec =
 
 // Declare constants used to denote whether an allocation is
 // 'READONLY' (CONST) or not (WRITE).
-let CONST = {{ False }};
-let WRITE = {{ True }};
+let CONST  = {{ 0 : [2] }}; //Points to allocated space that is READ ONLY.
+let WRITE  = {{ 1 : [2] }}; //Points to allocated space that can be modified.
+let UNINIT = {{ 2 : [2] }}; //Pointer does not point to allocated space.
 
 // Returns a newly-allocated pointer of the given type.
-let pointer (rw : Term) (type : LLVMType) = if (eval_bool {{ rw == WRITE }})
-                      then crucible_alloc type
-                      else crucible_alloc_readonly type;
+let pointer (rw : Term) (type : LLVMType) =
+  if     (eval_bool {{ rw == 0 }}) then crucible_alloc_readonly type
+  else if(eval_bool {{ rw == 1 }}) then crucible_alloc type
+  else                                  crucible_fresh_pointer type;
 
 //Symbolic value --- for use with the `variable` function.
 let FRESH   = { fresh={{ True }} : Term, t={{ error "NEW Term field was accessed" }} : Term};
@@ -49,6 +65,8 @@ let variable (type : LLVMType) (name : String) (v : { fresh : Term, t : Term}) =
 // SetupValue and Term for the variable.
 let alloc (rw : Term) (type : LLVMType) (name : String) (v : { fresh : Term, t : Term}) = do {
   v' <- variable type name v;
+  //This pointer cannot is not uninitialized.
+  err <- if (eval_bool {{ rw == 2 }}) then error else noerror;
   p <- pointer rw type;
   points_to p v'.s;
   return {p=p, s=v'.s, t=v'.t};
@@ -101,20 +119,6 @@ let string_t' (size : Int) (string_name : String) = do {
   let s = string.t;
   postcond {{ s@(`size : [64]) == 0 }};
   return {p=string.p, s=from_cryptol string.t, t=string.t};
-};
-
-// This function will cause llvm_verify to error and, most
-// importantly, provide a handy backtrace.
-let error = do {
-  crucible_precond {{ True }};
-  crucible_postcond {{ True }};
-  return {{ True }};
-};
-
-// This function is useful in the opposite case of an `if` statement
-// with an `error`.
-let noerror = do {
-  return {{ True }};
 };
 
 // Provides an empty list of objects. Used as the basecase for

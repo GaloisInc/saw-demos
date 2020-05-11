@@ -112,7 +112,7 @@ let variable (type : LLVMType) (name : String) (v : { fresh : Term, t : Term}) =
  */
 let alloc (rw : Term) (type : LLVMType) (name : String) (v : { fresh : Term, t : Term}) = do {
   v' <- variable type name v;
-  //This pointer cannot is not uninitialized.
+  //This pointer is not uninitialized.
   err <- if (eval_bool {{ rw == 2 }}) then error else noerror;
   p <- pointer rw type;
   points_to p v'.s;

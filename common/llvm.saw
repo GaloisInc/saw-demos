@@ -63,9 +63,9 @@ let UNALLOC = {{ 2 : [2] }}; //Pointer does not point to allocated space.
  *   p <- pointer UNALLOC (llvm_array 4 uint32_t);
  */ 
 let pointer (rw : Term) (type : LLVMType) =
-  if (eval_bool {{ rw == CONST }}) then crucible_alloc_readonly type
+  if      (eval_bool {{ rw == CONST }}) then crucible_alloc_readonly type
   else if (eval_bool {{ rw == WRITE }}) then crucible_alloc type
-  else crucible_fresh_pointer type;
+  else                                       crucible_fresh_pointer type;
 
 //Symbolic value --- for use with the `variable` function.
 let FRESH = { fresh={{ True }} : Term, t={{ error "NEW Term field was accessed" }} : Term};

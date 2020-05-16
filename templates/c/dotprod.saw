@@ -9,7 +9,7 @@ let vec_t (rw : Term) (n : Int) (name : String) = do {
   //Create the structure
   elts <- alloc rw (llvm_array n uint32_t) (str_concat name ".elts") FRESH;
   size <- variable uint32_t "size" (STALE {{ `n : [32] }});
-  vec <- struct rw "vec_t" [ elts.p, size.s ];
+  vec <- struct [ elts.p, size.s ];
 
   vecp <- pointer rw (struct_t "vec_t");
   points_to vecp vec.s;

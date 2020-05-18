@@ -4,40 +4,64 @@ import "dotprod.cry";
 // Include common LLVM utilities
 include "../../common/llvm.saw";
 
+// This function provides a new vec_t of a given size
+let vec_t (rw : Term) (n : Int) (name : String) = do {
+  //Create the structure
+  elts <- alloc rw (llvm_array n uint32_t) (str_concat name ".elts") FRESH;
+  size <- variable uint32_t "size" (STALE {{ `n : [32] }});
+  vec <- struct [ elts.p, size.s ];
+
+  vecp <- pointer rw (struct_t "vec_t");
+  points_to vecp vec.s;
+
+  //Create the Term for the structure (for use in Cryptol expressions)
+  let (sizet, eltst) = (size.t, elts.t);
+  let vect = {{ {size=sizet, elts=eltst} }};
+
+  //Return a pointer, a SetupValue, and a Term for the new vec_t.
+  return {p=vecp, s=vec.s, t=vect};
+};
+
 // This function specifies what the `dotprod` function should do when
 // given an input of size `n`.
+
+//uint32_t dotprod(vec_t *x, vec_t *y)
 let dotprod_spec n = do {
-    let nt = crucible_term {{ `n : [32] }};
-    (xs, xsp) <- ptr_to_fresh "xs" (llvm_array n i32);
-    (ys, ysp) <- ptr_to_fresh "ys" (llvm_array n i32);
-    let xval = crucible_struct [ xsp, nt ];
-    let yval = crucible_struct [ ysp, nt ];
-    xp <- alloc_init (llvm_struct "struct.vec_t") xval;
-    yp <- alloc_init (llvm_struct "struct.vec_t") yval;
-    crucible_execute_func [xp, yp];
-    crucible_return (crucible_term {{ dotprod xs ys }});
+    x <- vec_t CONST n "x";
+    y <- vec_t CONST n "y";
+
+    execute [x.p, y.p];
+
+    let (xt, yt) = (x.t, y.t);
+    returns (from_cryptol {{ dotprod xt.elts yt.elts }});
 };
 
 // The same spec as above, but for the case where both input pointers
 // point to the same object.
+//uint32_t dotprod(vec_t *x, vec_t *x)
 let dotprod_aliased_spec n = do {
-    let nt = crucible_term {{ `n : [32] }};
-    (xs, xsp) <- ptr_to_fresh "xs" (llvm_array n i32);
-    let xval = crucible_struct [ xsp, nt ];
-    xp <- alloc_init (llvm_struct "struct.vec_t") xval;
-    crucible_execute_func [xp, xp];
-    crucible_return (crucible_term {{ dotprod xs xs }});
+    x <- vec_t CONST n "x";
+
+    execute [x.p, x.p];
+
+    let xt = x.t;
+    returns (from_cryptol {{ dotprod xt.elts xt.elts }});
 };
 
 // Load the LLVM bitcode file generated from `dotprod.c`
 m <- llvm_load_module "dotprod.bc";
 
-let sz = 4;
+let size = 4;
 
 // Verify the distinct version
-dotprod_ov <- crucible_llvm_verify m "dotprod" [] true (dotprod_spec sz) z3;
-crucible_llvm_verify m "dotprod_wrap" [dotprod_ov] true (dotprod_spec sz) z3;
+dotprod_ov <- llvm_verify m "dotprod" [] (dotprod_spec size);
+
+// Test simply to demonstrate how overrides are applied
+llvm_verify m "dotprod" [dotprod_ov] (dotprod_spec size);
 
 // Verify the aliased version
-dotprod_aliased_ov <- crucible_llvm_verify m "dotprod" [] true (dotprod_aliased_spec sz) z3;
-crucible_llvm_verify m "dotprod_wrap" [dotprod_aliased_ov] true (dotprod_aliased_spec sz) z3;
+dotprod_aliased_ov <- llvm_verify m "dotprod" [] (dotprod_aliased_spec size);
+
+// Test simply to demonstrate how overrides are applied
+llvm_verify m "dotprod" [dotprod_aliased_ov] (dotprod_aliased_spec size);
+

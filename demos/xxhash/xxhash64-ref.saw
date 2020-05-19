@@ -1,4 +1,4 @@
-include "llvm.saw";
+include "../../common/llvm.saw";
 
 import "xxhash.cry";
 

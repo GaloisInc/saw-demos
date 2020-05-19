@@ -26,6 +26,7 @@ let global_init name = do {
   points_to (global name)
             (crucible_global_initializer name);
 };
+let NULL = crucible_null;
 let element = crucible_elem;
 let equal = crucible_equal;
 let execute = crucible_execute_func;
@@ -97,7 +98,7 @@ let variable (type : LLVMType) (name : String) (v : { fresh : Term, t : Term}) =
   cfv <- if (eval_bool v.fresh) then (crucible_fresh_var name type) else variable_empty;
   let t = if (eval_bool v.fresh) then cfv else v.t;
   let s = from_cryptol t;
-  return {p=crucible_null, s=s, t=t};
+  return {p=NULL, s=s, t=t};
 };
 
 /**
@@ -150,7 +151,7 @@ let struct_t (name : String) = llvm_struct (str_concat "struct." name);
 
 let struct (s : [SetupValue]) = do {
   let s_struct = crucible_struct s;
-  return {p=crucible_null, s=s_struct, t={{ error "struct Term field was accessed" }}};
+  return {p=NULL, s=s_struct, t={{ error "struct Term field was accessed" }}};
 };
 
 // Provides a pointer, SetupValue, and Term associated with a string

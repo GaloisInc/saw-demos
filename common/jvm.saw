@@ -1,0 +1,38 @@
+// JVM  utility definitions
+
+// Remove 'jvm' from common commands
+let field_is = jvm_field_is;
+let array_is = jvm_array_is;
+let precond = jvm_precond;
+let from_cryptol = jvm_term;
+let NULL = jvm_null;
+let element = jvm_elem_is;
+let execute = jvm_execute_func;
+let postcond = jvm_postcond;
+let returns = jvm_return;
+let alloc_object = jvm_alloc_object;
+let alloc_array = jvm_alloc_array;
+
+let verify module function_name overrides spec =
+  jvm_verify module function_name overrides true spec z3;
+  
+// This makes it easy to swap between verify and assume
+let assume module function_name overrides spec =
+  jvm_unsafe_assume_spec module function_name spec;
+
+// Standard Java type names
+let byte = java_byte;
+let char = java_char;
+let short = java_short;
+let int = java_int;
+let long = java_long;
+let float = java_float;
+let double = java_double;
+
+let alloc_fresh_array ty nm sz = do {
+    r <- jvm_alloc_array sz ty;
+    x <- jvm_fresh_var nm (java_array sz ty);
+    array_is r x;
+    return { ref=r, value=x };
+};
+

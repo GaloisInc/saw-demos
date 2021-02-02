@@ -1,0 +1,47 @@
+type BigInteger n = ([32], [n][32])
+
+validBigInteger : {n} (fin n, n >= 1) => BigInteger n -> Bit
+validBigInteger (signum, mag) =
+  (signum == -1 \/ signum == 0 \/ signum == 1) /\
+  (signum == 0) == (mag == zero) /\
+  // TODO: this disallows using the MSB, which we should allow but would
+  // be more complex
+  join mag >$ 0
+
+bigIntegerToBV : {n} (fin n, n >= 1) => BigInteger n -> [(n*32)]
+bigIntegerToBV (signum, mag) = sext signum * join mag
+
+bigIntegerToInteger : {n} (fin n, n >= 1) => BigInteger n -> Integer
+bigIntegerToInteger (signum, mag) = signumInteger * toInteger (join mag)
+  where
+    signumInteger = if signum == -1 then -1 else if signum == 1 then 1 else 0
+
+integerToBigInteger : {n} (fin n, n >= 1) => Integer -> BigInteger n
+integerToBigInteger x =
+  if x < 0 then (-1, fromInteger (-x))
+  else if x > 0 then (1, fromInteger x)
+  else (0, zero)
+
+bvToBigInteger : {n} (fin n, n >= 1) => [n*32] -> BigInteger n
+bvToBigInteger x =
+  if x <$ 0 then (-1, split (-x))
+  else if x >$ 0 then (1, split x)
+  else (0, zero)
+
+property bvToFromBigInteger (bv : [32]) =
+  bigIntegerToBV (bvToBigInteger bv) == bv
+
+property bigIntegerToFromBV (bi : BigInteger 1) =
+  validBigInteger bi ==>
+  bvToBigInteger (bigIntegerToBV bi) == bi
+
+property integerToFromBigInteger (i : Integer) =
+  i < 2^^31 /\ -(2^^31) < i ==>
+  bigIntegerToInteger bi == i
+    where
+      bi : BigInteger 1
+      bi = integerToBigInteger i
+
+property bigIntegerToFromInteger (bi : BigInteger 1) =
+  validBigInteger bi ==>
+  integerToBigInteger (bigIntegerToInteger bi) == bi

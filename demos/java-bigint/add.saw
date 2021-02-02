@@ -1,0 +1,116 @@
+enable_experimental;
+
+include "../../common/jvm.saw";
+
+import "BigInteger.cry";
+
+//// BigInteger utilities ////
+
+let alloc_bigint elts = do {
+    r <- alloc_object "java.math.BigInteger";
+    rmag <- alloc_array elts int;
+    field_is r "mag" rmag;
+    return (r, rmag);
+};
+
+let alloc_fresh_bigint nm elts = do {
+    r <- alloc_object "java.math.BigInteger";
+    mag <- alloc_fresh_array int (str_concat nm ".mag") elts;
+    signum <- jvm_fresh_var (str_concat nm ".signum") int;
+    field_is r "signum" (jvm_term signum);
+    field_is r "mag" mag.ref;
+    return { ref=r, magref=mag.ref, val={ signum=signum, mag=mag.value } };
+};
+
+let bigint_pre (x : { ref : JVMValue, magref : JVMValue, val : { signum : Term, mag : Term } }) = do {
+    let signum = x.val.signum;
+    precond {{ signum == 0 \/ signum == 1 \/ signum == -1 }};
+};
+
+let alloc_fresh_bigint_pre nm elts = do {
+    bi <- alloc_fresh_bigint nm elts;
+    bigint_pre bi;
+    return bi;
+};
+
+let bigint_is (r, rmag) (val : { signum : Term, mag : Term }) = do {
+    field_is r "signum" (jvm_term val.signum);
+    array_is rmag val.mag;
+};
+
+let bigint_to_bv_term (val : { signum : Term, mag : Term }) = do {
+  let signum = val.signum; 
+  let mag = val.mag; 
+  return {{ bigIntegerToBV (signum, mag) }};
+};
+
+let bv_term_to_bigint t = do {
+  let bi = {{ bvToBigInteger t }};
+  return { signum = {{ bi.0 }}, mag = {{ bi.1 }} };
+};
+
+let assign_new_bigint n t = do {
+    (zr, zmagr) <- alloc_bigint n;
+    bi <- bv_term_to_bigint t;
+    bigint_is (zr, zmagr) bi;
+    return zr;
+};
+
+//// Method specifications ////
+
+let stripLeadingZeroInts_setup n = do {
+    rval <- alloc_array n int;
+    execute [rval];
+    returns rval;
+};
+
+// We can't prove this at the moment, for the BigInteger method, because
+// execution results in arrays of different sizes. It should be
+// semantically correct otherwise, though.
+let add_setup n = do {
+    x <- alloc_fresh_bigint_pre "x" n;
+    y <- alloc_fresh_bigint_pre "y" n;
+    xval <- bigint_to_bv_term x.val;
+    yval <- bigint_to_bv_term y.val;
+    execute [x.ref, y.ref];
+    zr <- assign_new_bigint n {{ xval + yval }};
+    returns zr;
+};
+
+let add_setup_aliased n = do {
+    x <- alloc_fresh_bigint_pre "x" n;
+    xval <- bigint_to_bv_term x.val;
+    execute [x.ref, x.ref];
+    zr <- assign_new_bigint n {{ xval + xval }};
+    returns zr;
+};
+
+let dbl_setup n = do {
+    x <- alloc_fresh_bigint_pre "x" n;
+    xval <- bigint_to_bv_term x.val;
+    execute [x.ref];
+    zr <- assign_new_bigint n {{ 2 * xval }};
+    returns zr;
+};
+
+//// Verification ////
+
+c <- java_load_class "Add";
+bic <- java_load_class "java.math.BigInteger";
+let name = "add:(Ljava/math/BigInteger;)Ljava/math/BigInteger;";
+
+tslz_ov <- assume bic "trustedStripLeadingZeroInts" [] (stripLeadingZeroInts_setup 8);
+slz_ov <- assume bic "stripLeadingZeroInts" [] (stripLeadingZeroInts_setup 8);
+
+// TODO: the following doesn't work, and maybe can't work due to the
+// frequent resizing in the implementation of BigInteger methods.
+
+//bigint_add_ov <- verify bic name [slz_ov, tslz_ov] (add_setup 8);
+
+bigint_add_ov <- assume bic name [] (add_setup 8);
+bigint_add_ov_aliased <- assume bic name [] (add_setup_aliased 8);
+
+add_ov <- verify c "add" [bigint_add_ov] (add_setup 8);
+add_ov_aliased <- verify c "add" [bigint_add_ov_aliased] (add_setup_aliased 8);
+dbl_ov <- verify c "dbl" [add_ov_aliased] (dbl_setup 8);
+print "Done.";

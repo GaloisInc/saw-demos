@@ -73,7 +73,16 @@ let add_setup n = do {
     xval <- bigint_to_bv_term x.val;
     yval <- bigint_to_bv_term y.val;
     execute [x.ref, y.ref];
-    zr <- assign_new_bigint n {{ xval + yval }};
+    let result = {{ xval + yval }};
+    zr <- assign_new_bigint n result;
+
+    // We can assume these two postconditions, to make reasoning about
+    // callers that want to use the `Z n` or integer types feasible.
+    // Current SMT solvers can't prove them, though, due to poor support
+    // for interaction between bit vectors and integers.
+    postcond {{ bvToZ `{m=2^^(n*32)} result == bvToZ xval + bvToZ yval }};
+    postcond {{ toInteger result == toInteger xval + toInteger yval }};
+
     returns zr;
 };
 
@@ -81,7 +90,13 @@ let add_setup_aliased n = do {
     x <- alloc_fresh_bigint_pre "x" n;
     xval <- bigint_to_bv_term x.val;
     execute [x.ref, x.ref];
-    zr <- assign_new_bigint n {{ xval + xval }};
+    let result = {{ xval + xval }};
+    zr <- assign_new_bigint n result;
+
+    // The same comment applies to these postconditions as to the ones above.
+    postcond {{ bvToZ `{m=2^^(n*32)} result == bvToZ xval + bvToZ xval }};
+    postcond {{ toInteger result == toInteger xval + toInteger xval }};
+
     returns zr;
 };
 
@@ -89,7 +104,16 @@ let dbl_setup n = do {
     x <- alloc_fresh_bigint_pre "x" n;
     xval <- bigint_to_bv_term x.val;
     execute [x.ref];
-    zr <- assign_new_bigint n {{ 2 * xval }};
+    let result = {{ 2 * xval }};
+    zr <- assign_new_bigint n result;
+
+    // These two postconditions are only provable with current SMT
+    // solvers because of the assumptions made for add. If we comment
+    // out the postconditions of the assumed specifications for add, the
+    // following won't terminate.
+    postcond {{ bvToZ `{m=2^^(n*32)} result == 2 * bvToZ xval }};
+    postcond {{ toInteger result == 2 * toInteger xval }};
+
     returns zr;
 };
 

@@ -8,6 +8,15 @@ validBigInteger (signum, mag) =
   // be more complex
   join mag >$ 0
 
+bvToZ : {n, m} (fin n, fin m, 2^^n <= m) => [n] -> Z m
+bvToZ bv = fromInteger (toInteger bv)
+
+zToBv : {n, m} (fin n, fin m, m <= 2^^n, m >= 1) => Z m -> [n]
+zToBv z = fromInteger (fromZ z)
+
+property bvToFromCorrect (bv : [27]) =
+  zToBv (bvToZ `{m=2^^27} bv) == bv
+
 bigIntegerToBV : {n} (fin n, n >= 1) => BigInteger n -> [(n*32)]
 bigIntegerToBV (signum, mag) = sext signum * join mag
 
@@ -16,11 +25,21 @@ bigIntegerToInteger (signum, mag) = signumInteger * toInteger (join mag)
   where
     signumInteger = if signum == -1 then -1 else if signum == 1 then 1 else 0
 
+bigIntegerToZ : {n, m} (fin n, fin m, n >= 1, m >= 2) => BigInteger n -> Z m
+bigIntegerToZ (signum, mag) = signumZ * fromInteger (toInteger (join mag))
+  where
+    signumZ = if signum == 1 then 1 else 0
+
 integerToBigInteger : {n} (fin n, n >= 1) => Integer -> BigInteger n
 integerToBigInteger x =
   if x < 0 then (-1, fromInteger (-x))
   else if x > 0 then (1, fromInteger x)
   else (0, zero)
+
+zToBigInteger : {n, m} (fin n, fin m, n >= 1, m >= 2) => Z m -> BigInteger n
+zToBigInteger x =
+  if x == 0 then (0, zero)
+  else (1, fromInteger (fromZ x))
 
 bvToBigInteger : {n} (fin n, n >= 1) => [n*32] -> BigInteger n
 bvToBigInteger x =
@@ -45,3 +64,16 @@ property integerToFromBigInteger (i : Integer) =
 property bigIntegerToFromInteger (bi : BigInteger 1) =
   validBigInteger bi ==>
   integerToBigInteger (bigIntegerToInteger bi) == bi
+
+type FixedZMod = 83263
+type FixedZ = Z FixedZMod
+
+property zToFromBigInteger (z : FixedZ) =
+  bigIntegerToZ bi == z
+    where
+      bi : BigInteger 1
+      bi = zToBigInteger z
+
+property bigIntegerToFromZ (bi : BigInteger 1) =
+  validBigInteger bi /\ bi.0 != -1 /\ join bi.1 < `FixedZMod ==>
+  zToBigInteger (bigIntegerToZ bi : FixedZ) == bi

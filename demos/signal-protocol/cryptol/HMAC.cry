@@ -1,0 +1,16 @@
+type HMAC_CONTEXT_LENGTH = 1
+type HMACContext = [HMAC_CONTEXT_LENGTH][8]
+
+type SIGNAL_MESSAGE_MAC_LENGTH = 8
+
+hmac_init : {n} [n][8] -> // Key
+            HMACContext
+hmac_init = undefined
+
+hmac_update : {n} [n][8] -> // Data
+              HMACContext -> HMACContext
+hmac_update = undefined
+
+hmac_final : HMACContext ->
+             [SIGNAL_MESSAGE_MAC_LENGTH][8] // Signal buffer
+hmac_final = undefined

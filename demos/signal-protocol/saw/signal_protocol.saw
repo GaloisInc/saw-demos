@@ -1,0 +1,113 @@
+include "buffer_helpers.saw";
+include "load.saw";
+include "saw_helpers.saw";
+
+let buffer_alloc_spec (len : Int) : CrucibleSetup () = do {
+  let lenval = {{ `(len) : [64] }};
+
+  llvm_execute_func [llvm_term lenval];
+
+  buf   <- alloc_buffer_aligned len;
+  llvm_points_to_at_type (llvm_elem buf 0) i64 (llvm_term lenval);
+  llvm_return buf;
+};
+
+let buffer_create_spec (len : Int) = do {
+  let lenval = {{`(len) : [64]}};
+  (data, datap) <- ptr_to_fresh "data" (llvm_array len i8);
+
+  llvm_execute_func [datap, llvm_term lenval];
+
+  buf <- alloc_pointsto_buffer len data;
+  llvm_return buf;
+};
+
+let buffer_copy_spec (len : Int) = do {
+
+  let lenval = {{`(len) : [64]}};
+  data  <- crucible_fresh_var "data" (llvm_array len i8);
+  buffer <- alloc_pointsto_buffer_readonly len data;
+
+  llvm_execute_func[buffer];
+
+  newbuf <- alloc_pointsto_buffer len data;
+  llvm_return newbuf;
+};
+
+//This can be reused for signal_buffer_copy
+let buffer_copy_n_spec (len : Int) (n: Int) = do {
+  let lenval = {{`(len) : [64]}};
+  data  <- crucible_fresh_var "data" (llvm_array len i8);
+  buffer <- alloc_pointsto_buffer_readonly len data;
+
+  llvm_execute_func[buffer, llvm_term {{`(n) : [64]}}];
+
+
+  let newlenval = {{(min `(len) `(n)):[64]}};
+  let newlen = eval_int newlenval;
+
+  newbuf <- alloc_pointsto_buffer newlen {{take`{newlen} data}};
+  llvm_return newbuf;
+  };
+
+let buffer_append_spec (buffer_len : Int) (additional_len : Int) = do {
+  buffer_data <- llvm_fresh_var "buffer_data" (llvm_array buffer_len i8);
+  buffer <- alloc_pointsto_buffer buffer_len buffer_data;
+
+  let additional_len_val = {{`(additional_len) : [64]}};
+  (additional_data, additional_datap) <- ptr_to_fresh "additional_data" (llvm_array additional_len i8);
+
+  llvm_execute_func [buffer, additional_datap, llvm_term additional_len_val];
+
+  let new_len_val = {{ `(buffer_len) + `(additional_len) : [64] }};
+  let new_len = eval_int new_len_val;
+  new_buffer <- alloc_pointsto_buffer new_len {{ buffer_data # additional_data }};
+  llvm_return new_buffer;
+};
+
+let constant_memcmp_spec (n: Int) = do {
+  (s1, s1p) <- ptr_to_fresh "s1" (llvm_array n i8);
+  (s2, s2p) <- ptr_to_fresh "s2" (llvm_array n i8);
+  let nval = {{ `(n) : [64] }};
+
+  llvm_execute_func [s1p, s2p, llvm_term nval];
+
+  let retval = {{ zext`{32} (foldl (||) zero (zipWith (^) s1 s2)) }};
+  llvm_return (llvm_term retval);
+};
+
+let signal_type_init_spec = do {
+  instance <- llvm_alloc (llvm_alias "struct.signal_type_base");
+  let destroy_func = llvm_global "signal_message_destroy";
+
+  llvm_execute_func [instance, destroy_func];
+
+  llvm_points_to (llvm_field instance "ref_count") (llvm_term {{ 1 : [32] }});
+  llvm_points_to (llvm_field instance "destroy") destroy_func;
+};
+
+let signal_type_ref_spec = do {
+  ref_count <- llvm_fresh_var "ref_count" i32;
+  llvm_precond {{ ref_count > 0 }};
+  instance <- llvm_alloc (llvm_alias "struct.signal_type_base");
+  llvm_points_to (llvm_field instance "ref_count") (llvm_term ref_count);
+
+  llvm_execute_func [instance];
+
+  llvm_points_to (llvm_field instance "ref_count") (llvm_term {{ ref_count + 1 }});
+};
+
+let print_tactic = do {
+  //simplify (cryptol_ss ());
+  print_goal;
+  abc;
+};
+
+buffer_alloc_ov     <- llvm_verify m "signal_buffer_alloc"     [] false (buffer_alloc_spec 64) abc;
+buffer_create_ov    <- llvm_verify m "signal_buffer_create"    [] false (buffer_create_spec 64) abc;
+buffer_copy_ov      <- llvm_verify m "signal_buffer_copy"      [] false (buffer_copy_spec 63) abc;
+buffer_copy_n_ov    <- llvm_verify m "signal_buffer_n_copy"    [] false (buffer_copy_n_spec 64 31) abc;
+buffer_append_ov    <- llvm_verify m "signal_buffer_append"    [] false (buffer_append_spec 63 31) abc;
+constant_memcmp_ov  <- llvm_verify m "signal_constant_memcmp"  [] false (constant_memcmp_spec 63) abc;
+signal_type_init_ov <- llvm_verify m "signal_type_init"        [] false signal_type_init_spec abc;
+signal_type_ref_ov  <- llvm_verify m "signal_type_ref"         [] false signal_type_ref_spec abc;

@@ -1,3 +1,6 @@
 [submodule "cryptol-specs"]
 	path = cryptol-specs
 	url = https://github.com/galoisinc/cryptol-specs
+[submodule "demos/signal-protocol/libsignal-protocol-c"]
+	path = demos/signal-protocol/libsignal-protocol-c
+	url = https://github.com/signalapp/libsignal-protocol-c

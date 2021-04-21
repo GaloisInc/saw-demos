@@ -1,0 +1,16 @@
+include "saw_helpers.saw";
+
+let buffer_type (len : Int) : LLVMType = (llvm_array (eval_size {| 8 + len|}) i8);
+let buffer_type_ptr (len : Int) : LLVMType = llvm_pointer (buffer_type len);
+let alloc_buffer_aligned (len : Int) = llvm_alloc_aligned 16 (buffer_type len);
+let alloc_buffer_aligned_readonly (len: Int ) = llvm_alloc_readonly_aligned 16 (buffer_type len);
+let alloc_pointsto_buffer (len : Int) (data : Term) = do {
+  buf <- alloc_buffer_aligned len;
+  llvm_points_to_untyped buf (llvm_struct_value [llvm_term {{`(len) : [64]}}, llvm_term data]);
+  return buf;
+};
+let alloc_pointsto_buffer_readonly (len : Int) (data : Term) = do {
+  buf <- alloc_buffer_aligned_readonly len;
+  llvm_points_to_untyped buf (llvm_struct_value [llvm_term {{`(len) : [64]}}, llvm_term data]);
+  return buf;
+};

@@ -17,7 +17,8 @@ directories:
 To run these examples, you'll first need to install SAW. More
 information on doing so is available on the [main web site for
 SAW](https://saw.galois.com). More information is also available in the
-[GitHub repository](https://github.com/GaloisInc/saw-script).
+[GitHub repository](https://github.com/GaloisInc/saw-script). SAW 0.6 or
+later is required to run the examples in this repo.
 
 SAW requires the Z3 SMT solver, and supports the use of other SMT
 solvers. Since Z3 is required, we use it in these verification scripts

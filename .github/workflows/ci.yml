@@ -1,0 +1,39 @@
+name: saw-demos
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+env:
+  Z3_VERSION: "4.8.10"
+  CVC4_VERSION: "4.1.8"
+  YICES_VERSION: "2.6.2"
+  SAW_VERSION: "0.8"
+
+jobs:
+  run-demos:
+    runs-on: ${{ matrix.os }}
+    name: saw-demos (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+    - name: "Checkout"
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: "Install system dependencies"
+      shell: bash
+      run: .github/ci.sh install_system_deps
+
+    - name: "Run demos"
+      shell: bash
+      run: |
+        export PATH="$PWD/bin:$PATH"
+        make -C templates/c
+        make -C demos/salsa20
+        make -C demos/xxhash

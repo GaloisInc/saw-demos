@@ -1,4 +1,5 @@
 # Overview
+[![Build Status](https://github.com/GaloisInc/saw-demos/workflows/saw-demos/badge.svg)](https://github.com/GaloisInc/saw-demos/actions?query=workflow%3Asaw-demos)
 
 This repository contains a collection of demonstration proofs performed
 using the Software Analysis Workbench (SAW). It contains the following

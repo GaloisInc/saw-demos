@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "signal-protocol"
+version = "0.1.0"
+description = ""
+authors = ["Ryan Scott <rscott@galois.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+requests = "^2.25.1"
+BitVector = "^3.4.9"
+saw-client = "^0.8.1"
+
+[tool.poetry.dev-dependencies]
+mypy = "^0.812"
+isort = "^5.7.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -30,10 +30,26 @@ jobs:
       shell: bash
       run: .github/ci.sh install_system_deps
 
+    - name: "Install Python"
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+
+    - name: "Install Poetry"
+      uses: abatilo/actions-poetry@v2.0.0
+      with:
+        poetry-version: 1.1.5
+
+    - name: "Install wllvm"
+      shell: bash
+      run: pip install wllvm
+
     - name: "Run demos"
       shell: bash
       run: |
         export PATH="$PWD/bin:$PATH"
         make -C templates/c
         make -C demos/salsa20
+        make -C demos/signal-protocol
+        make -C demos/signal-protocol all-python
         make -C demos/xxhash

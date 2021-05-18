@@ -7,7 +7,7 @@ This includes both a SAWScript implementation (under the `saw/` directory) as we
 Python implementation (under the `python/` directory).
 
 The Python code in particular is described in more detail in
-[this blog post](TODO RGS: Update when blog is published).
+[this blog post](https://galois.com/blog/2021/05/of-protocols-and-pythons/).
 
 # Dependencies
 

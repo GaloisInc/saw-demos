@@ -1,8 +1,9 @@
 LIBSIGNAL_DIR=libsignal-protocol-c
 LIBSIGNAL_BUILD_DIR=$(LIBSIGNAL_DIR)/build
-CLANG ?= clang
-# N.B., the Makefile expects `llvm-link` to be colocated with `clang` for the next line to work:
-LLVM_LINK_NAME=$(shell dirname $(shell realpath $(shell which $(CLANG))))/llvm-link
+LLVM_CONFIG ?= llvm-config
+LLVM_BIN_DIR = $(shell $(LLVM_CONFIG) --bindir)
+CLANG_NAME=$(LLVM_BIN_DIR)/clang
+LLVM_LINK_NAME=$(LLVM_BIN_DIR)/llvm-link
 
 .PHONY: all
 all: all-saw-script
@@ -34,7 +35,7 @@ c/libsignal-everything.bc: $(LIBSIGNAL_BUILD_DIR)/src/libsignal-protocol-c.a.bc 
 	$(LLVM_LINK_NAME) $^ -o $@
 
 c/dummy_signal_crypto_provider.bc: c/dummy_signal_crypto_provider.c
-	$(CLANG) -g -c -emit-llvm $< -o $@ -I$(LIBSIGNAL_DIR)/src
+	$(CLANG_NAME) -g -c -emit-llvm $< -o $@ -I$(LIBSIGNAL_DIR)/src
 
 .PHONY: clean
 clean:

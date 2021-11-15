@@ -28,7 +28,9 @@ jobs:
 
     - name: "Install system dependencies"
       shell: bash
-      run: .github/ci.sh install_system_deps
+      run: |
+        .github/ci.sh install_system_deps
+        clang --version
 
     - name: "Install Python"
       uses: actions/setup-python@v2

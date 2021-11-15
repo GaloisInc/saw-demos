@@ -28,9 +28,11 @@ even though it may not be the best-performing solver.
 Once SAW is installed, configure your system so that the `saw`
 executable is in your shell's search path.
 
-For C verification, the LLVM toolchain is required. In particular, the
-`clang` compiler is required, and the `llvm-link` utility is necessary
-for any verification involving more than one compilation unit.
+For C verification, the LLVM toolchain is required. In particular, the `clang`
+compiler is required, and the `llvm-link` utility is necessary for any
+verification involving more than one compilation unit. Demos rely on
+`llvm-config --bindir` to locate these tools (customizable via the optional
+`LLVM_CONFIG` environment variable).
 
 For Java verification, JDK 6 through JDK 8 is required. Later versions
 unfortunately do not include a `.jar` file containing the standard

@@ -2,8 +2,8 @@ LIBSIGNAL_DIR=libsignal-protocol-c
 LIBSIGNAL_BUILD_DIR=$(LIBSIGNAL_DIR)/build
 LLVM_CONFIG ?= llvm-config
 LLVM_BIN_DIR = $(shell $(LLVM_CONFIG) --bindir)
-CLANG_NAME=$(LLVM_BIN_DIR)/clang
-LLVM_LINK_NAME=$(LLVM_BIN_DIR)/llvm-link
+CLANG=$(LLVM_BIN_DIR)/clang
+LLVM_LINK=$(LLVM_BIN_DIR)/llvm-link
 
 .PHONY: all
 all: all-saw-script

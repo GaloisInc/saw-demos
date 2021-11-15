@@ -1,6 +1,5 @@
 LLVM_CONFIG ?= llvm-config
-LLVM_BIN_DIR = $(shell $(LLVM_CONFIG) --bindir)
-CLANG=$(LLVM_BIN_DIR)/clang
+CLANG=$(shell $(LLVM_CONFIG) --bindir)/clang
 
 
 all: salsa20.bc salsa20.saw

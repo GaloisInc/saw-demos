@@ -1,6 +1,10 @@
 LIBSIGNAL_DIR=libsignal-protocol-c
 LIBSIGNAL_BUILD_DIR=$(LIBSIGNAL_DIR)/build
-LLVM_LINK_NAME=$(shell dirname $(shell readlink -f $(shell which clang)))/llvm-link
+LLVM_CONFIG ?= llvm-config
+LLVM_HOME=$(shell $(LLVM_CONFIG) --bindir)
+CLANG=$(LLVM_HOME)/clang
+# N.B., wllvm requires the `LLVM_LINK_NAME` environment variable to function properly
+LLVM_LINK_NAME=$(LLVM_HOME)/llvm-link
 
 .PHONY: all
 all: all-saw-script
@@ -17,11 +21,12 @@ all-python: libsignal
 
 libsignal: c/libsignal-everything.bc
 
+# N.B., the `LLVM_COMPILER` variable needs to be literally `clang`, not a PATH to clang
 $(LIBSIGNAL_BUILD_DIR)/src/libsignal-protocol-c.a:
 	mkdir -p $(LIBSIGNAL_BUILD_DIR)
 	(cd $(LIBSIGNAL_BUILD_DIR) && \
-	LLVM_COMPILER=clang cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=wllvm .. && \
-	LLVM_COMPILER=clang make)
+	PATH="$(LLVM_HOME):$(PATH)" LLVM_COMPILER=clang cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=wllvm .. && \
+	PATH="$(LLVM_HOME):$(PATH)" LLVM_COMPILER=clang make)
 
 $(LIBSIGNAL_BUILD_DIR)/src/libsignal-protocol-c.a.bc: $(LIBSIGNAL_BUILD_DIR)/src/libsignal-protocol-c.a
 	(cd $(LIBSIGNAL_BUILD_DIR) && \
@@ -31,7 +36,7 @@ c/libsignal-everything.bc: $(LIBSIGNAL_BUILD_DIR)/src/libsignal-protocol-c.a.bc 
 	$(LLVM_LINK_NAME) $^ -o $@
 
 c/dummy_signal_crypto_provider.bc: c/dummy_signal_crypto_provider.c
-	clang -g -c -emit-llvm $< -o $@ -I$(LIBSIGNAL_DIR)/src
+	$(CLANG) -g -c -emit-llvm $< -o $@ -I$(LIBSIGNAL_DIR)/src
 
 .PHONY: clean
 clean:

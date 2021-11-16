@@ -2,7 +2,8 @@ LIBSIGNAL_DIR=libsignal-protocol-c
 LIBSIGNAL_BUILD_DIR=$(LIBSIGNAL_DIR)/build
 LLVM_CONFIG ?= llvm-config
 CLANG=$(shell $(LLVM_CONFIG) --bindir)/clang
-LLVM_LINK=$(shell $(LLVM_CONFIG) --bindir)/llvm-link
+# N.B., wllvm requires the `LLVM_LINK_NAME` environment variable to function properly
+LLVM_LINK_NAME=$(shell $(LLVM_CONFIG) --bindir)/llvm-link
 
 .PHONY: all
 all: all-saw-script
@@ -28,10 +29,10 @@ $(LIBSIGNAL_BUILD_DIR)/src/libsignal-protocol-c.a:
 
 $(LIBSIGNAL_BUILD_DIR)/src/libsignal-protocol-c.a.bc: $(LIBSIGNAL_BUILD_DIR)/src/libsignal-protocol-c.a
 	(cd $(LIBSIGNAL_BUILD_DIR) && \
-	extract-bc -l $(LLVM_LINK) -b src/libsignal-protocol-c.a)
+	extract-bc -l $(LLVM_LINK_NAME) -b src/libsignal-protocol-c.a)
 
 c/libsignal-everything.bc: $(LIBSIGNAL_BUILD_DIR)/src/libsignal-protocol-c.a.bc c/dummy_signal_crypto_provider.bc
-	$(LLVM_LINK) $^ -o $@
+	$(LLVM_LINK_NAME) $^ -o $@
 
 c/dummy_signal_crypto_provider.bc: c/dummy_signal_crypto_provider.c
 	$(CLANG) -g -c -emit-llvm $< -o $@ -I$(LIBSIGNAL_DIR)/src

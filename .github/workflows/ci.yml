@@ -10,7 +10,7 @@ env:
   Z3_VERSION: "4.8.10"
   CVC4_VERSION: "4.1.8"
   YICES_VERSION: "2.6.2"
-  SAW_VERSION: "0.9"
+  SAW_VERSION: "0.8"
   LLVM_CONFIG: "llvm-config-12"
 
 jobs:

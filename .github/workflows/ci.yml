@@ -31,7 +31,6 @@ jobs:
       shell: bash
       run: |
         .github/ci.sh install_system_deps
-        clang --version
 
     - name: "Install Python"
       uses: actions/setup-python@v2

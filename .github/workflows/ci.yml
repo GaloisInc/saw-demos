@@ -11,7 +11,7 @@ env:
   CVC4_VERSION: "4.1.8"
   YICES_VERSION: "2.6.2"
   SAW_VERSION: "0.8"
-  LLVM_CONFIG: "llvm-config-12"
+  LLVM_CONFIG: "llvm-config-10"
 
 jobs:
   run-demos:
@@ -30,8 +30,8 @@ jobs:
     - name: "Install system dependencies"
       shell: bash
       run: |
-        sudo apt-get install llvm-12
         .github/ci.sh install_system_deps
+        clang --version
 
     - name: "Install Python"
       uses: actions/setup-python@v2

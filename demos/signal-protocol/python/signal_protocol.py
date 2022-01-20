@@ -174,6 +174,74 @@ class SignalTypeRefSpec(Contract):
 
         self.points_to(instance["ref_count"], cryptol(f"{ref_count.name()} + 1"))
         self.returns(void)
+        
+class SerializeProtobufSpec(Contract):
+    length: int
+
+    def __init__(self, length: int):
+        super().__init__()
+        self.length = length
+
+    def specification(self) -> None:
+        buffer = self.alloc(alias_ty("struct.ProtobufCBinaryData"))
+
+        data = self.fresh_var(array_ty(self.length, i8), "data")
+        self.precondition(f"{data.name()} ! 0 == 0")
+        # self.precondition(data[0] == 0)
+        # self.precondition(cryptol("(==)")(data[0].to_json(), cryptol("0")))
+        for i in range(self.length - 1):
+            self.precondition(f"{data.name()} @ {i} > 0")
+
+        stringp = self.alloc(array_ty(self.length, i8), points_to=data)
+
+        self.execute_func(buffer, stringp)
+
+        nval = int_to_64_cryptol(self.length - 1)
+        self.points_to(buffer, struct(nval, stringp))
+        self.returns(void)
+
+class DeserializeProtobufSpec(Contract):
+
+    def __init__(self, length: int):
+        super().__init__()
+        self.length = length
+
+    def specification(self) -> None:
+        data = self.fresh_var(array_ty(self.length + 1, i8), "data")
+        self.precondition(f"{data.name()} ! 0 == 0")
+        for i in range(self.length):
+            self.precondition(f"{data.name()} @ {i} > 0")
+
+        stringp = self.alloc(array_ty(self.length + 1, i8), points_to=data)
+        # (data, stringp) = arbitrary_string(self, "data", self.length + 1)
+
+        nval = int_to_64_cryptol(self.length)
+        bufferp = self.alloc(alias_ty("struct.ProtobufCBinaryData"),
+                             points_to=struct(nval, stringp))
+
+        self.execute_func(bufferp)
+
+        stringrp = self.alloc(array_ty(self.length + 1, i8), points_to=data)
+        self.returns(stringrp)
+        
+class SignalBufferCompareSpec(Contract):
+    def __init__(self, length: int):
+        super().__init__()
+        self.length = length
+
+    def specification(self) -> None:
+        data1 = self.fresh_var(array_ty(self.length, i8))
+        buf1 = alloc_pointsto_buffer(self, self.length, data1)
+
+        data2 = self.fresh_var(array_ty(self.length, i8))
+        buf2 = alloc_pointsto_buffer(self, self.length, data2)
+
+        self.precondition(f"{data1.name()} == {data2.name()}")
+
+        self.execute_func(buf1, buf2)
+
+        self.returns(cryptol(f"zext`{{32}} (foldl (||) zero (zipWith (^) {data1.name()} {data2.name()}))"))
+
 
 buffer_alloc_ov          = llvm_verify(mod, "signal_buffer_alloc",    BufferAllocSpec(64))
 buffer_create_ov         = llvm_verify(mod, "signal_buffer_create",   BufferCreateSpec(64))
@@ -184,3 +252,6 @@ constant_memcmp_ov       = llvm_verify(mod, "signal_constant_memcmp", ConstantMe
 constant_memcmp_equal_ov = llvm_verify(mod, "signal_constant_memcmp", ConstantMemcmpEqualSpec(63))
 signal_type_init_ov      = llvm_verify(mod, "signal_type_init",       SignalTypeInitSpec())
 signal_type_ref_ov       = llvm_verify(mod, "signal_type_ref",        SignalTypeRefSpec())
+serialize_protobuf_ov = llvm_verify(mod, "signal_protocol_str_serialize_protobuf", SerializeProtobufSpec(64))
+deserialize_protobuf_ov = llvm_verify(mod, "signal_protocol_str_deserialize_protobuf", DeserializeProtobufSpec(64))
+signal_buffer_compare_ov = llvm_verify(mod, "signal_buffer_compare", SignalBufferCompareSpec(64))

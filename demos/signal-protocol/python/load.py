@@ -6,7 +6,7 @@ from saw_client import LogResults, connect, llvm_load_module, view
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 connect()
-view(LogResults())
+view(LogResults(verbose_failure=True))
 
 path = [os.path.dirname(dir_path), "c", "libsignal-everything.bc"]
 bcname = os.path.join(*path)

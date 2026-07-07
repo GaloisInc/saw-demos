@@ -6,7 +6,7 @@ include "../../common/llvm.saw";
 
 // This function provides a new vec_t of a given size
 let vec_t (rw : Term) (n : Int) (name : String) = do {
-  //Create the structure
+  // Create the structure
   elts <- alloc rw (llvm_array n uint32_t) (str_concat name ".elts") FRESH;
   size <- variable uint32_t "size" (STALE {{ `n : [32] }});
   vec <- struct [ elts.p, size.s ];
@@ -14,18 +14,18 @@ let vec_t (rw : Term) (n : Int) (name : String) = do {
   vecp <- pointer rw (struct_t "vec_t");
   points_to vecp vec.s;
 
-  //Create the Term for the structure (for use in Cryptol expressions)
+  // Create the Term for the structure (for use in Cryptol expressions)
   let (sizet, eltst) = (size.t, elts.t);
   let vect = {{ {size=sizet, elts=eltst} }};
 
-  //Return a pointer, a SetupValue, and a Term for the new vec_t.
+  // Return a pointer, a SetupValue, and a Term for the new vec_t.
   return {p=vecp, s=vec.s, t=vect};
 };
 
 // This function specifies what the `dotprod` function should do when
 // given an input of size `n`.
 
-//uint32_t dotprod(vec_t *x, vec_t *y)
+// uint32_t dotprod(vec_t *x, vec_t *y)
 let dotprod_spec n = do {
     x <- vec_t CONST n "x";
     y <- vec_t CONST n "y";
@@ -38,7 +38,7 @@ let dotprod_spec n = do {
 
 // The same spec as above, but for the case where both input pointers
 // point to the same object.
-//uint32_t dotprod(vec_t *x, vec_t *x)
+// uint32_t dotprod(vec_t *x, vec_t *x)
 let dotprod_aliased_spec n = do {
     x <- vec_t CONST n "x";
 

@@ -38,9 +38,9 @@ let llvm_verify module function_name overrides spec =
 
 // Declare constants used to denote what kind of space a pointer is
 // pointing to.
-let CONST  = {{ 0 : [2] }}; //Points to allocated space that is READ ONLY.
-let WRITE  = {{ 1 : [2] }}; //Points to allocated space that can be modified.
-let UNALLOC = {{ 2 : [2] }}; //Pointer does not point to allocated space.
+let CONST  = {{ 0 : [2] }}; // Points to allocated space that is READ ONLY.
+let WRITE  = {{ 1 : [2] }}; // Points to allocated space that can be modified.
+let UNALLOC = {{ 2 : [2] }}; // Pointer does not point to allocated space.
 
 /**
  * Returns a pointer of the given type. The first argument is either
@@ -68,12 +68,12 @@ let pointer (rw : Term) (type : LLVMType) =
   else if (eval_bool {{ rw == WRITE }}) then llvm_alloc type
   else                                       llvm_fresh_pointer type;
 
-//Symbolic value --- for use with the `variable` function.
+// Symbolic value --- for use with the `variable` function.
 let FRESH = { fresh={{ True }} : Term, t={{ error "NEW Term field was accessed" }} : Term};
-//Concrete value --- for use with the `variable` function.
+// Concrete value --- for use with the `variable` function.
 let STALE (t : Term) = { fresh={{ False }} : Term, t=t : Term};
 
-//Empty variable --- called by the `variable` function.
+// Empty variable --- called by the `variable` function.
 let variable_empty = do {
   return {{ False }};
 };
@@ -122,7 +122,7 @@ let variable (type : LLVMType) (name : String) (v : { fresh : Term, t : Term}) =
  */
 let alloc (rw : Term) (type : LLVMType) (name : String) (v : { fresh : Term, t : Term}) = do {
   v' <- variable type name v;
-  //The UNALLOC pointer cannot point to allocated memory.
+  // The UNALLOC pointer cannot point to allocated memory.
   err <- if (eval_bool {{ rw == UNALLOC }}) then error else noerror;
   p <- pointer rw type;
   points_to p v'.s;

@@ -18,7 +18,7 @@ directories:
 To run these examples, you'll first need to install SAW. More
 information on doing so is available on the [main web site for
 SAW](https://saw.galois.com). More information is also available in the
-[GitHub repository](https://github.com/GaloisInc/saw-script). SAW 0.8 or
+[GitHub repository](https://github.com/GaloisInc/saw-script). SAW 1.5 or
 later is required to run the examples in this repo.
 
 SAW requires the Z3 SMT solver, and supports the use of other SMT
@@ -43,7 +43,7 @@ In addition to the requirements above, the `signal-protocol` demo requires
 some additional dependencies to run. For more information, view the
 demo's [associated `README.md` file](demos/signal-protocol/README.md).
 
-Each of the verification demos includes a `Makefile` that will perform
+Each of the verification demos includes a (gmake) `Makefile` that will perform
 whatever steps are required to compile the source code under analysis
 and the execute `saw` on the appropriate verification script. Each
 `Makefile` can be invoked by running `make` in the appropriate directory,

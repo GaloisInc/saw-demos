@@ -23,8 +23,7 @@ let global = llvm_global;
 let global_alloc = llvm_alloc_global;
 let global_init name = do {
   global_alloc name;
-  points_to (global name)
-            (llvm_global_initializer name);
+  points_to (global name) (llvm_global_initializer name);
 };
 let NULL = llvm_null;
 let element = llvm_elem;
@@ -69,9 +68,16 @@ let pointer (rw : Term) (type : LLVMType) =
   else                                       llvm_fresh_pointer type;
 
 // Symbolic value --- for use with the `variable` function.
-let FRESH = { fresh={{ True }} : Term, t={{ error "NEW Term field was accessed" }} : Term};
+let FRESH = {
+  fresh={{ True }} : Term,
+  t={{ error "NEW Term field was accessed" }} : Term
+};
+
 // Concrete value --- for use with the `variable` function.
-let STALE (t : Term) = { fresh={{ False }} : Term, t=t : Term};
+let STALE (t : Term) = {
+  fresh={{ False }} : Term,
+  t=t : Term
+};
 
 // Empty variable --- called by the `variable` function.
 let variable_empty = do {
@@ -187,7 +193,8 @@ let array_init_empty = do {
 // Provides a list of initialized objects and a same-sized list of
 // buckets where associated values can be stored.
 rec array_init_rec (numElements : Int) (init_function : Int -> a -> LLVMSetup {s : LLVMValue, bucket : b}) (params : a) = do {
-  err <- if (eval_bool {{ (`numElements : [32]) == 0 }}) then error else noerror; //numElements must be greater than 0
+  // numElements must be greater than 0
+  err <- if (eval_bool {{ (`numElements : [32]) == 0 }}) then error else noerror;
   element <- init_function (eval_int {{ (`numElements : [32]) - 1 }}) params;
   rest <- if (eval_bool {{ (`numElements : [32]) == 1 }}) then array_init_empty
           else array_init_rec (eval_int {{ (`numElements : [32]) - 1 }}) init_function params;

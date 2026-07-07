@@ -38,6 +38,7 @@ let dotprod_spec n = do {
 
 // The same spec as above, but for the case where both input pointers
 // point to the same object.
+//
 // uint32_t dotprod(vec_t *x, vec_t *x)
 let dotprod_aliased_spec n = do {
     x <- vec_t CONST n "x";

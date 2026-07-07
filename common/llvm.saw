@@ -3,8 +3,8 @@
 // This function will cause llvm_verify to error and, most
 // importantly, provide a handy backtrace.
 let error = do {
-  crucible_precond {{ True }};
-  crucible_postcond {{ True }};
+  llvm_precond {{ True }};
+  llvm_postcond {{ True }};
   return {{ True }};
 };
 
@@ -14,27 +14,27 @@ let noerror = do {
   return {{ True }};
 };
 
-// Remove 'crucible' from common commands
-let points_to = crucible_points_to;
-let precond = crucible_precond;
-let from_cryptol = crucible_term;
+// Remove 'llvm' from common commands
+let points_to = llvm_points_to;
+let precond = llvm_precond;
+let from_cryptol = llvm_term;
 
-let global = crucible_global;
-let global_alloc = crucible_alloc_global;
+let global = llvm_global;
+let global_alloc = llvm_alloc_global;
 let global_init name = do {
   global_alloc name;
   points_to (global name)
-            (crucible_global_initializer name);
+            (llvm_global_initializer name);
 };
-let NULL = crucible_null;
-let element = crucible_elem;
-let equal = crucible_equal;
-let execute = crucible_execute_func;
-let postcond = crucible_postcond;
-let returns = crucible_return;
-let array = crucible_array;
+let NULL = llvm_null;
+let element = llvm_elem;
+let equal = llvm_equal;
+let execute = llvm_execute_func;
+let postcond = llvm_postcond;
+let returns = llvm_return;
+let array = llvm_array;
 let llvm_verify module function_name overrides spec =
-  crucible_llvm_verify module function_name overrides true spec z3;
+  llvm_verify module function_name overrides true spec z3;
 
 // Declare constants used to denote what kind of space a pointer is
 // pointing to.
@@ -64,9 +64,9 @@ let UNALLOC = {{ 2 : [2] }}; //Pointer does not point to allocated space.
  *   p <- pointer UNALLOC (llvm_array 4 uint32_t);
  */ 
 let pointer (rw : Term) (type : LLVMType) =
-  if      (eval_bool {{ rw == CONST }}) then crucible_alloc_readonly type
-  else if (eval_bool {{ rw == WRITE }}) then crucible_alloc type
-  else                                       crucible_fresh_pointer type;
+  if      (eval_bool {{ rw == CONST }}) then llvm_alloc_readonly type
+  else if (eval_bool {{ rw == WRITE }}) then llvm_alloc type
+  else                                       llvm_fresh_pointer type;
 
 //Symbolic value --- for use with the `variable` function.
 let FRESH = { fresh={{ True }} : Term, t={{ error "NEW Term field was accessed" }} : Term};
@@ -79,7 +79,7 @@ let variable_empty = do {
 };
 
 /**
- * Returns a NULL pointer, SetupValue, and Term for either a new
+ * Returns a NULL pointer, LLVMValue, and Term for either a new
  * symbolic variable or a term passed in. The first argument is the
  * type of the variable to be created. The second argument is a name
  * that is printed during debugging or counterexamples. The third
@@ -95,7 +95,7 @@ let variable_empty = do {
  *   v <- variable (llvm_int 32) "name" (STALE {{ 10 : [32] }})
  */
 let variable (type : LLVMType) (name : String) (v : { fresh : Term, t : Term}) = do {
-  cfv <- if (eval_bool v.fresh) then (crucible_fresh_var name type) else variable_empty;
+  cfv <- if (eval_bool v.fresh) then (llvm_fresh_var name type) else variable_empty;
   let t = if (eval_bool v.fresh) then cfv else v.t;
   let s = from_cryptol t;
   return {p=NULL, s=s, t=t};
@@ -104,7 +104,7 @@ let variable (type : LLVMType) (name : String) (v : { fresh : Term, t : Term}) =
 /**
  * Returns a newly-allocated pointer of the given type that points to
  * a new symbolic variable or a term passed in. Also returns the
- * SetupValue and Term for the variable. The first argument is either
+ * LLVMValue and Term for the variable. The first argument is either
  * CONST or WRITE; see `:h pointer` for more information. The second
  * argument is type of the value the pointer points to. The third
  * argument is a name that is printed during debugging or
@@ -149,12 +149,12 @@ let char = llvm_int 8;
 // Provides the type of a struct. For example, 'struct_t "mystruct_t"';
 let struct_t (name : String) = llvm_struct (str_concat "struct." name);
 
-let struct (s : [SetupValue]) = do {
-  let s_struct = crucible_struct s;
+let struct (s : [LLVMValue]) = do {
+  let s_struct = llvm_struct s;
   return {p=NULL, s=s_struct, t={{ error "struct Term field was accessed" }}};
 };
 
-// Provides a pointer, SetupValue, and Term associated with a string
+// Provides a pointer, LLVMValue, and Term associated with a string
 // of size `size+1` that is NULL terminated. The Term (Cryptol value)
 // DOES NOT have the NULL at the end of the string.
 // This is to be used before the `execute` command.
@@ -166,7 +166,7 @@ let string_t (rw : Term) (size : Int) (string_name : String) = do {
   return {p=pstring, s=string.s, t=string.t};
 };
 
-// Provides a pointer, SetupValue, and Term associated with a string
+// Provides a pointer, LLVMValue, and Term associated with a string
 // of size `size+1` that is NULL terminated. The Term (Cryptol value)
 // DOES have the NULL at the end of the string.
 // This is to be used after the `execute` command.
@@ -181,12 +181,12 @@ let string_t' (size : Int) (string_name : String) = do {
 // Provides an empty list of objects. Used as the basecase for
 // `array_init_rec`.
 let array_init_empty = do {
-  return {s=[] : [SetupValue], bucket=[] : [b]} : CrucibleSetup {s : [SetupValue], bucket : [b]};
+  return {s=[] : [LLVMValue], bucket=[] : [b]} : LLVMSetup {s : [LLVMValue], bucket : [b]};
 };
 
 // Provides a list of initialized objects and a same-sized list of
 // buckets where associated values can be stored.
-rec array_init_rec (numElements : Int) (init_function : Int -> a -> CrucibleSetup {s : SetupValue, bucket : b}) (params : a) = do {
+rec array_init_rec (numElements : Int) (init_function : Int -> a -> LLVMSetup {s : LLVMValue, bucket : b}) (params : a) = do {
   err <- if (eval_bool {{ (`numElements : [32]) == 0 }}) then error else noerror; //numElements must be greater than 0
   element <- init_function (eval_int {{ (`numElements : [32]) - 1 }}) params;
   rest <- if (eval_bool {{ (`numElements : [32]) == 1 }}) then array_init_empty
@@ -195,7 +195,7 @@ rec array_init_rec (numElements : Int) (init_function : Int -> a -> CrucibleSetu
   let ret_s = (concat rest.s [element.s]);
   let ret_bucket = (concat rest.bucket [element.bucket]);
 
-  return {s=ret_s : [SetupValue], bucket=ret_bucket : [b]};
+  return {s=ret_s : [LLVMValue], bucket=ret_bucket : [b]};
 };
 
 /**
@@ -206,13 +206,13 @@ rec array_init_rec (numElements : Int) (init_function : Int -> a -> CrucibleSetu
  * third argument is type of the value of the array elements. The
  * fourth argument is an initialization function that takes the
  * element's array index and some concrete parameters (the fifth
- * argument) and returns a SetupValue representing the array and a
+ * argument) and returns a LLVMValue representing the array and a
  * bucket where associated values can be stored.
  */
-let array_init (rw : Term) (numElements : Int) (type : LLVMType) (init_function : Int -> a -> CrucibleSetup {s : SetupValue, bucket : b}) (params : a) = do {
+let array_init (rw : Term) (numElements : Int) (type : LLVMType) (init_function : Int -> a -> LLVMSetup {s : LLVMValue, bucket : b}) (params : a) = do {
   list <- array_init_rec numElements init_function params;
   let arr = array list.s;
   p <- pointer rw (llvm_array numElements type);
   points_to p arr;
-  return {p=p : SetupValue, s=arr : SetupValue, bucket=list.bucket : [b]};
+  return {p=p : LLVMValue, s=arr : LLVMValue, bucket=list.bucket : [b]};
 };

@@ -55,14 +55,14 @@ m <- llvm_load_module "dotprod.bc";
 let size = 4;
 
 // Verify the distinct version
-dotprod_ov <- llvm_verify m "dotprod" [] (dotprod_spec size);
+dotprod_ov <- do_llvm_verify m "dotprod" [] (dotprod_spec size);
 
 // Test simply to demonstrate how overrides are applied
-llvm_verify m "dotprod" [dotprod_ov] (dotprod_spec size);
+do_llvm_verify m "dotprod" [dotprod_ov] (dotprod_spec size);
 
 // Verify the aliased version
-dotprod_aliased_ov <- llvm_verify m "dotprod" [] (dotprod_aliased_spec size);
+dotprod_aliased_ov <- do_llvm_verify m "dotprod" [] (dotprod_aliased_spec size);
 
 // Test simply to demonstrate how overrides are applied
-llvm_verify m "dotprod" [dotprod_aliased_ov] (dotprod_aliased_spec size);
+do_llvm_verify m "dotprod" [dotprod_aliased_ov] (dotprod_aliased_spec size);
 

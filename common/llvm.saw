@@ -32,7 +32,7 @@ let execute = llvm_execute_func;
 let postcond = llvm_postcond;
 let returns = llvm_return;
 let array = llvm_array_value;
-let llvm_verify module function_name overrides spec =
+let do_llvm_verify module function_name overrides spec =
   llvm_verify module function_name overrides true spec z3;
 
 // Declare constants used to denote what kind of space a pointer is

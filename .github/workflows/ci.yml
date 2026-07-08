@@ -37,14 +37,14 @@ jobs:
         .github/ci.sh install_system_deps
 
     - name: "Install Python"
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v6
       with:
-        python-version: '3.9'
+        python-version: '3.12'
 
     - name: "Install Poetry"
-      uses: abatilo/actions-poetry@v2.0.0
+      uses: abatilo/actions-poetry@v4
       with:
-        poetry-version: 1.1.5
+        poetry-version: 2.4.1
 
     - name: "Install wllvm"
       shell: bash

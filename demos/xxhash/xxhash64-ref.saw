@@ -35,7 +35,7 @@ let XXH_rotl64_spec = do {
   returns (from_cryptol {{ value_t <<< amt_t }});
 };
 
-XXH_rotl64_result <- llvm_verify xxhash64_ref_bc "XXH_rotl64" [] XXH_rotl64_spec;
+XXH_rotl64_result <- do_llvm_verify xxhash64_ref_bc "XXH_rotl64" [] XXH_rotl64_spec;
 
 
 //uint64_t XXH64_round(uint64_t acc, uint64_t const input)
@@ -51,7 +51,7 @@ let XXH64_round_spec = do {
   returns (from_cryptol {{ XXH64_round acc_t input_t }});
 };
 
-XXH64_round_result <- llvm_verify xxhash64_ref_bc "XXH64_round" [] XXH64_round_spec;
+XXH64_round_result <- do_llvm_verify xxhash64_ref_bc "XXH64_round" [] XXH64_round_spec;
 
 
 //uint64_t XXH64_avalanche(uint64_t hash)
@@ -64,7 +64,7 @@ let XXH64_avalanche_spec = do {
   returns (from_cryptol {{ XXH64_avalanche hash_t }});
 };
 
-XXH64_avalanche_result <- llvm_verify xxhash64_ref_bc "XXH64_avalanche" [] XXH64_avalanche_spec;
+XXH64_avalanche_result <- do_llvm_verify xxhash64_ref_bc "XXH64_avalanche" [] XXH64_avalanche_spec;
 
 
 //uint64_t XXH64(void const *const input, size_t const length, uint64_t const seed)
@@ -78,7 +78,7 @@ let XXH64_NULL_spec = do {
   returns (from_cryptol {{ XXH64`{L=0} zero seed_t }});
 };
 
-XXH64_NULL_result <- llvm_verify xxhash64_ref_bc "XXH64" [] XXH64_NULL_spec;
+XXH64_NULL_result <- do_llvm_verify xxhash64_ref_bc "XXH64" [] XXH64_NULL_spec;
 
 
 //uint64_t XXH64(void const *const input, size_t const length, uint64_t const seed)
@@ -93,7 +93,7 @@ let XXH64_spec (nBytes : Int) = do {
   returns (from_cryptol {{ XXH64`{L=nBytes} input_t seed_t }});
 };
 
-let XXH64_result (nBytes : Int) = crucible_llvm_verify xxhash64_ref_bc "XXH64" [XXH_rotl64_result, XXH64_round_result, XXH64_avalanche_result] true (XXH64_spec nBytes) yices;
+let XXH64_result (nBytes : Int) = llvm_verify xxhash64_ref_bc "XXH64" [XXH_rotl64_result, XXH64_round_result, XXH64_avalanche_result] true (XXH64_spec nBytes) yices;
 
 let XXH64_verify_print n = do {
     print (str_concat "Checking XXH64 correct for nBytes=" (show n));

@@ -7,11 +7,9 @@ on:
     branches: [master]
 
 env:
-  Z3_VERSION: "4.8.10"
-  CVC4_VERSION: "4.1.8"
-  YICES_VERSION: "2.6.2"
-  SAW_VERSION: "0.8"
-  LLVM_CONFIG: "llvm-config-10"
+  SOLVER_PKG_VERSION: "snapshot-20260622"
+  SAW_VERSION: "1.5"
+  LLVM_CONFIG: "llvm-config-18"
 
 jobs:
   run-demos:
@@ -27,20 +25,26 @@ jobs:
       with:
         submodules: true
 
+    - name: Download what4-solvers
+      uses: GaloisInc/what4-solvers@v1
+      with:
+        dest: bin
+        release: ${{ env.SOLVER_PKG_VERSION }}
+
     - name: "Install system dependencies"
       shell: bash
       run: |
         .github/ci.sh install_system_deps
 
     - name: "Install Python"
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v6
       with:
-        python-version: '3.9'
+        python-version: '3.12'
 
     - name: "Install Poetry"
-      uses: abatilo/actions-poetry@v2.0.0
+      uses: abatilo/actions-poetry@v4
       with:
-        poetry-version: 1.1.5
+        poetry-version: 2.4.1
 
     - name: "Install wllvm"
       shell: bash

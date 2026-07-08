@@ -2,7 +2,8 @@ import os
 import os.path
 
 from saw_client import llvm_verify
-from saw_client.llvm import Contract, alias_ty, array_ty, cryptol, elem, i8, i32, i64, field, global_var, ptr_ty, struct, struct_ty, void
+from saw_client.crucible import cry
+from saw_client.llvm import Contract, alias_ty, array_ty, elem, i8, i32, i64, field, global_var, ptr_ty, struct, struct_ty, void
 
 from buffer_helpers import *
 from load import mod
@@ -73,7 +74,7 @@ class BufferCopyNSpec(Contract):
 
         new_length = min(self.length, self.n)
 
-        new_buf = alloc_pointsto_buffer(self, new_length, cryptol(f"take`{{ {new_length} }} {data.name()}"))
+        new_buf = alloc_pointsto_buffer(self, new_length, cry(f"take`{{ {new_length} }} {data.name()}"))
         self.returns(new_buf)
 
 class BufferAppendSpec(Contract):
@@ -96,7 +97,7 @@ class BufferAppendSpec(Contract):
 
         new_length = self.buf_length + self.additional_length;
         new_buf    = alloc_pointsto_buffer(self, new_length,
-                                           cryptol(f"{buf_data.name()} # {additional_data.name()}"))
+                                           cry(f"{buf_data.name()} # {additional_data.name()}"))
         self.returns(new_buf)
 
 class ConstantMemcmpSpec(Contract):
@@ -113,7 +114,7 @@ class ConstantMemcmpSpec(Contract):
 
         self.execute_func(s1p, s2p, nval)
 
-        self.returns(cryptol(f"zext`{{32}} (foldl (||) zero (zipWith (^) {s1.name()} {s2.name()}))"))
+        self.returns(cry(f"zext`{{32}} (foldl (||) zero (zipWith (^) {s1.name()} {s2.name()}))"))
 
 class ConstantMemcmpEqualSpec(Contract):
     n: int
@@ -125,7 +126,7 @@ class ConstantMemcmpEqualSpec(Contract):
     def specification(self) -> None:
         (s1, s1p) = ptr_to_fresh(self, array_ty(self.n, i8), name = "s1")
         (s2, s2p) = ptr_to_fresh(self, array_ty(self.n, i8), name = "s2")
-        self.precondition(cryptol(f"{s1.name()} == {s2.name()}"))
+        self.precondition(cry(f"{s1.name()} == {s2.name()}"))
 
         self.execute_func(s1p, s2p, int_to_64_cryptol(self.n))
 
@@ -148,7 +149,7 @@ class ECPublicKeySerializeSpec(Contract):
         self.execute_func(buffer_, key)
 
         buf = alloc_pointsto_buffer(self, length,
-                                    cryptol(f"[`({DJB_TYPE})] # {key_data.name()} : [{length}][8]"))
+                                    cry(f"[`({DJB_TYPE})] # {key_data.name()} : [{length}][8]"))
         self.points_to(buffer_, buf)
         self.returns(int_to_32_cryptol(0))
 
@@ -166,13 +167,13 @@ class SignalTypeInitSpec(Contract):
 class SignalTypeRefSpec(Contract):
     def specification(self) -> None:
         ref_count = self.fresh_var(i32, "ref_count")
-        self.precondition(cryptol(f"{ref_count.name()} > 0"))
+        self.precondition(cry(f"{ref_count.name()} > 0"))
         instance = self.alloc(alias_ty("struct.signal_type_base"))
         self.points_to(instance["ref_count"], ref_count)
 
         self.execute_func(instance)
 
-        self.points_to(instance["ref_count"], cryptol(f"{ref_count.name()} + 1"))
+        self.points_to(instance["ref_count"], cry(f"{ref_count.name()} + 1"))
         self.returns(void)
         
 class SerializeProtobufSpec(Contract):
@@ -188,7 +189,7 @@ class SerializeProtobufSpec(Contract):
         data = self.fresh_var(array_ty(self.length, i8), "data")
         self.precondition(f"{data.name()} ! 0 == 0")
         # self.precondition(data[0] == 0)
-        # self.precondition(cryptol("(==)")(data[0].to_json(), cryptol("0")))
+        # self.precondition(cry("(==)")(data[0].to_json(), cryptol("0")))
         for i in range(self.length - 1):
             self.precondition(f"{data.name()} @ {i} > 0")
 
@@ -240,7 +241,7 @@ class SignalBufferCompareSpec(Contract):
 
         self.execute_func(buf1, buf2)
 
-        self.returns(cryptol(f"zext`{{32}} (foldl (||) zero (zipWith (^) {data1.name()} {data2.name()}))"))
+        self.returns(cry(f"zext`{{32}} (foldl (||) zero (zipWith (^) {data1.name()} {data2.name()}))"))
 
 
 buffer_alloc_ov          = llvm_verify(mod, "signal_buffer_alloc",    BufferAllocSpec(64))

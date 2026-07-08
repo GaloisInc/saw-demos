@@ -67,12 +67,26 @@ install_yices() {
 install_saw() {
   is_exe "$BIN" "saw" && return
 
-  curl -o saw.tar.gz -sL "https://github.com/GaloisInc/saw-script/releases/download/v$SAW_VERSION/saw-$SAW_VERSION-$RUNNER_OS-x86_64.tar.gz"
+  local SAW_OS
+  case "$RUNNER_OS" in
+      # FUTURE: ideally we could autodetect the OS version here
+      Linux) SAW_OS=ubuntu-24.04;;
+      macOS) SAW_OS=macos-15;;
+      Windows) SAW_OS=windows-2022;;
+      *)
+          echo "Unexpected RUNNER_OS $RUNNER_OS" 1>&2
+          echo "Help?"
+          exit 1
+          ;;
+  esac
+  local NAME=saw-$SAW_VERSION-$SAW_OS-$RUNNER_ARCH
+
+  curl -o saw.tar.gz -sL "https://github.com/GaloisInc/saw-script/releases/download/v$SAW_VERSION/$NAME.tar.gz"
 
   tar -xzf saw.tar.gz
-  cp "saw-$SAW_VERSION-$RUNNER_OS-x86_64/bin/saw" "$BIN/saw"
-  cp "saw-$SAW_VERSION-$RUNNER_OS-x86_64/bin/saw-remote-api" "$BIN/saw-remote-api"
-  rm -rf saw.tar.gz "saw-$SAW_VERSION-$RUNNER_OS-x86_64"
+  cp "$NAME/bin/saw" "$BIN/saw"
+  cp "$NAME/bin/saw-remote-api" "$BIN/saw-remote-api"
+  rm -rf saw.tar.gz "$NAME"
 }
 
 install_system_deps() {

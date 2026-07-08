@@ -1,11 +1,11 @@
-include "buffer_helpers.saw";
-include "load.saw";
-include "saw_helpers.saw";
+include_once "buffer_helpers.saw";
+include_once "load.saw";
+include_once "saw_helpers.saw";
 
 let DJB_TYPE    = 0x05;
 let DJB_KEY_LEN = 32;
 
-let alloc_ec_public_key : CrucibleSetup (Term, Term, SetupValue) = do {
+let alloc_ec_public_key : LLVMSetup (Term, Term, LLVMValue) = do {
   let signal_type_base_ty = llvm_alias "struct.signal_type_base";
   let djb_array_ty = llvm_array DJB_KEY_LEN i8;
   key_base <- llvm_fresh_var "key_base" signal_type_base_ty;
@@ -29,4 +29,4 @@ let ec_public_key_serialize_spec = do {
   llvm_return (llvm_term {{ zero : [32] }});
 };
 
-ec_public_key_serialize_ov <- llvm_verify m "ec_public_key_serialize" [] false ec_public_key_serialize_spec abc;
+ec_public_key_serialize_ov <- do_llvm_verify m "ec_public_key_serialize" [] false ec_public_key_serialize_spec abc;

@@ -1,4 +1,4 @@
-include "saw_helpers.saw";
+include_once "saw_helpers.saw";
 
 let buffer_type (len : Int) : LLVMType = (llvm_array (eval_size {| 8 + len|}) i8);
 let buffer_type_ptr (len : Int) : LLVMType = llvm_pointer (buffer_type len);

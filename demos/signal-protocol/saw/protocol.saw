@@ -1,9 +1,9 @@
 import "../cryptol/HMAC.cry";
 
-include "buffer_helpers.saw";
-include "load.saw";
-include "saw_helpers.saw";
-include "curve.saw";
+include_once "buffer_helpers.saw";
+include_once "load.saw";
+include_once "saw_helpers.saw";
+include_once "curve.saw";
 
 let signal_context_ty = llvm_alias "struct.signal_context";
 let message_version = 3;
@@ -170,12 +170,12 @@ signal_hmac_sha256_init_ov              <- llvm_unsafe_assume_spec m "signal_hma
 signal_hmac_sha256_update_djb_key_ov    <- llvm_unsafe_assume_spec m "signal_hmac_sha256_update" (signal_hmac_sha256_update_spec (eval_int {{ `(DJB_KEY_LEN) + 1 : [64] }}));
 signal_hmac_sha256_update_serialized_ov <- llvm_unsafe_assume_spec m "signal_hmac_sha256_update" (signal_hmac_sha256_update_spec SERIALIZED_LENGTH);
 signal_hmac_sha256_final_ov             <- llvm_unsafe_assume_spec m "signal_hmac_sha256_final"  signal_hmac_sha256_final_spec;
-signal_hmac_sha256_cleanup_ov           <- llvm_verify m "signal_hmac_sha256_cleanup" [] false signal_hmac_sha256_cleanup_spec abc;
-signal_message_get_mac_ov               <- llvm_verify m "signal_message_get_mac"     [
+signal_hmac_sha256_cleanup_ov           <- do_llvm_verify m "signal_hmac_sha256_cleanup" [] false signal_hmac_sha256_cleanup_spec abc;
+signal_message_get_mac_ov               <- do_llvm_verify m "signal_message_get_mac"     [
                                                                                         signal_hmac_sha256_init_ov
                                                                                       , signal_hmac_sha256_update_djb_key_ov
                                                                                       , signal_hmac_sha256_update_serialized_ov
                                                                                       , signal_hmac_sha256_final_ov
                                                                                       ]
                                                                                       false (signal_message_get_mac_spec RATCHET_MAC_KEY_LENGTH SERIALIZED_LENGTH) (unint_z3 uninterps);
-signal_message_verify_mac_ov            <- llvm_verify m "signal_message_verify_mac" [signal_message_get_mac_ov] false (signal_message_verify_mac_spec RATCHET_MAC_KEY_LENGTH (eval_int {{ `(SERIALIZED_LENGTH) + `(SIGNAL_MESSAGE_MAC_LENGTH) : [64] }})) (unint_z3 uninterps);
+signal_message_verify_mac_ov            <- do_llvm_verify m "signal_message_verify_mac" [signal_message_get_mac_ov] false (signal_message_verify_mac_spec RATCHET_MAC_KEY_LENGTH (eval_int {{ `(SERIALIZED_LENGTH) + `(SIGNAL_MESSAGE_MAC_LENGTH) : [64] }})) (unint_z3 uninterps);

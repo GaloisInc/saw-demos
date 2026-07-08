@@ -70,7 +70,7 @@ let s20_encrypt32 n = do {
 
 m <- llvm_load_module "salsa20.bc";
 
-let verify = crucible_llvm_verify m;
+let verify = llvm_verify m;
 
 qr        <- verify "s20_quarterround" []       false quarterround_setup   abc;
 rr        <- verify "s20_rowround"     [qr]     false rowround_setup       abc;

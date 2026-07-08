@@ -1,4 +1,5 @@
 from saw_client import llvm_verify
+from saw_client.crucible import cry
 from saw_client.llvm import Contract, FreshVar, alias_ty, array_ty, i8, ptr_ty, struct_ty
 
 from buffer_helpers import *
@@ -26,7 +27,7 @@ class ECPublicKeySerializeSpec(Contract):
         self.execute_func(buffer_, key)
 
         buf = alloc_pointsto_buffer(self, length,
-                                    cryptol(f"[`({DJB_TYPE})] # {key_data.name()} : [{length}][8]"))
+                                    cry(f"[`({DJB_TYPE})] # {key_data.name()} : [{length}][8]"))
         self.points_to(buffer_, buf)
         self.returns(int_to_32_cryptol(0))
 

@@ -2,7 +2,8 @@ import os
 import os.path
 
 from saw_client import cryptol_load_file, llvm_assume, llvm_verify
-from saw_client.llvm import Contract, alias_ty, array, array_ty, cryptol, elem, field, global_var, i8, i32, i64, null, ptr_ty, struct, void
+from saw_client.crucible import cry
+from saw_client.llvm import Contract, alias_ty, array, array_ty, elem, field, global_var, i8, i32, i64, null, ptr_ty, struct, void
 from saw_client.proofscript import ProofScript, z3
 
 from buffer_helpers import *
@@ -55,7 +56,7 @@ class SignalHmacSha256InitSpec(Contract):
         #                                 points_to = array(int_to_8_cryptol(42)))
         # self.points_to(hmac_context_ptr, dummy_hmac_context)
         dummy_hmac_context = self.alloc(array_ty(HMAC_CONTEXT_LENGTH, i8),
-                                        points_to = cryptol(f"hmac_init`{{ {self.key_len} }} {key_data.name()}"))
+                                        points_to = cry(f"hmac_init`{{ {self.key_len} }} {key_data.name()}"))
         self.points_to(hmac_context_ptr, dummy_hmac_context)
         self.returns(int_to_32_cryptol(0))
 
@@ -76,7 +77,7 @@ class SignalHmacSha256UpdateSpec(Contract):
 
         # self.points_to(hmac_context, hmac_context_data)
         self.points_to(hmac_context,
-                       cryptol(f"hmac_update`{{ {self.data_len} }} {data_data.name()} {hmac_context_data.name()}"))
+                       cry(f"hmac_update`{{ {self.data_len} }} {data_data.name()} {hmac_context_data.name()}"))
         self.returns(int_to_32_cryptol(0))
 
 class SignalHmacSha256FinalSpec(Contract):
@@ -91,7 +92,7 @@ class SignalHmacSha256FinalSpec(Contract):
         # output_buffer = alloc_buffer_aligned(self, SIGNAL_MESSAGE_MAC_LENGTH)
         # self.points_to(output_buffer[0], int_to_64_cryptol(SIGNAL_MESSAGE_MAC_LENGTH), check_target_type = i64)
         output_buffer = alloc_pointsto_buffer(self, SIGNAL_MESSAGE_MAC_LENGTH,
-                                              cryptol(f"hmac_final {hmac_context_data.name()}"))
+                                              cry(f"hmac_final {hmac_context_data.name()}"))
 
         self.points_to(output, output_buffer)
         self.returns(int_to_32_cryptol(0))
@@ -110,7 +111,7 @@ def mk_hmac(serialized_len: int, serialized_data: FreshVar, receiver_identity_ke
             sender_identity_key_data: FreshVar, mac_key_len: int, mac_key_data: FreshVar) -> SetupVal:
     sender_identity_buf   = f"[{DJB_TYPE}] # {sender_identity_key_data.name()}   : [{DJB_KEY_LEN} + 1][8]"
     receiver_identity_buf = f"[{DJB_TYPE}] # {receiver_identity_key_data.name()} : [{DJB_KEY_LEN} + 1][8]"
-    return cryptol(f""" hmac_final
+    return cry(f""" hmac_final
                          (hmac_update`{{ {serialized_len} }} {serialized_data.name()}
                           (hmac_update`{{ {DJB_KEY_LEN}+1 }} ({receiver_identity_buf})
                            (hmac_update`{{ {DJB_KEY_LEN}+1 }} ({sender_identity_buf})
